@@ -1,0 +1,28 @@
+{
+  "name": "honeypower",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/*.js",
+  "scripts": {
+    "build-js-vendor": "browserify -r lodash -r rx -o dist/vendor.js",
+    "build-js": "browserify -x lodash src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\"",
+    "watch-js": "watchify -x react -x lodash src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\" -dv",
+    "build": "npm run build-js",
+    "watch": "npm run watch-js",
+    "livereload": "livereloadify dist",
+    "dev": "npm run watch & npm run livereload"
+  },
+  "author": "David Isaac Lee <david@david-lee.net> (http://david-lee.net/)",
+  "license": "ISC",
+  "devDependencies": {
+    "autoprefixer-stylus": "^0.8.0",
+    "browserify": "^11.2.0",
+    "coffeeify": "^1.1.0",
+    "livereloadify": "^2.0.0",
+    "stylus": "^0.52.4",
+    "watchify": "^3.4.0"
+  },
+  "dependencies": {
+    "lodash": "^3.10.1"
+  }
+}
