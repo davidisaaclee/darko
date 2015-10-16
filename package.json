@@ -4,11 +4,14 @@
   "description": "",
   "main": "dist/*.js",
   "scripts": {
-    "build-js-vendor": "browserify -r lodash -r rx -o dist/vendor.js",
-    "build-js": "browserify -x lodash src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\"",
-    "watch-js": "watchify -x react -x lodash src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\" -dv",
-    "build": "npm run build-js",
-    "watch": "npm run watch-js",
+    "build-js-vendor": "browserify -r lodash -r redux -o dist/vendor.js",
+    "build-js": "browserify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\"",
+    "test": "browserify -x lodash -x redux spec/testrunner.coffee -o spec/allspec.js -t coffeeify --extension=\".coffee\"; jasmine",
+    "run-tests": "jasmine",
+    "watch-js": "watchify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\" -dv",
+    "watch-tests": "watchify -x lodash -x redux spec/testrunner.coffee -o spec/allspec.js -t coffeeify --extension=\".coffee\" -dv",
+    "build": "npm run build-js & npm run test",
+    "watch": "npm run watch-js & npm run watch-tests",
     "livereload": "livereloadify dist",
     "dev": "npm run watch & npm run livereload"
   },
@@ -18,11 +21,14 @@
     "autoprefixer-stylus": "^0.8.0",
     "browserify": "^11.2.0",
     "coffeeify": "^1.1.0",
+    "jasmine": "^2.3.2",
+    "jasmine-node": "^1.14.5",
     "livereloadify": "^2.0.0",
     "stylus": "^0.52.4",
     "watchify": "^3.4.0"
   },
   "dependencies": {
-    "lodash": "^3.10.1"
+    "lodash": "^3.10.1",
+    "redux": "^3.0.2"
   }
 }
