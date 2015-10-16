@@ -1,16 +1,52 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-require('./module');
+module.exports = {
+  DeltaTime: 'DeltaTime',
+  AddTrigger: 'AddTrigger'
+};
+
+
+},{}],2:[function(require,module,exports){
+var _, k, timelineReducer;
 
 require('redux');
 
-module.exports = 4;
+_ = require('lodash');
+
+k = require('./ActionTypes');
+
+timelineReducer = function(state, action) {
+  var delta, entities;
+  if (state === void 0) {
+    console.warn('Reducer received no state.');
+  }
+  switch (action.type) {
+    case k.DeltaTime:
+      delta = action.data.delta;
+      entities = {
+        entities: _.mapValues(state.entities, function(entity, id) {
+          var timelines;
+          timelines = {
+            attachedTimelines: _.map(entity.attachedTimelines, function(timelineInfo) {
+              var progress, progressDelta;
+              progressDelta = delta / state.timelines[timelineInfo.id].length;
+              progress = {
+                progress: timelineInfo.progress + progressDelta
+              };
+              return _.assign(timelineInfo, progress);
+            })
+          };
+          return _.assign(entity, timelines);
+        })
+      };
+      return _.assign({}, state, entities);
+    default:
+      return state;
+  }
+};
+
+module.exports = {
+  timelineReducer: timelineReducer
+};
 
 
-},{"./module":2,"redux":"redux"}],2:[function(require,module,exports){
-var foo;
-
-foo = 3;
-
-
-},{}]},{},[1])
-//# sourceMappingURL=data:application/json;charset:utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5vZGVfbW9kdWxlcy9icm93c2VyaWZ5L25vZGVfbW9kdWxlcy9icm93c2VyLXBhY2svX3ByZWx1ZGUuanMiLCIvVXNlcnMvZGF2aWQvRG9jdW1lbnRzL1dvcmsvaG9uZXlwb3dlci9zcmMvaG9uZXlwb3dlci5jb2ZmZWUiLCIvVXNlcnMvZGF2aWQvRG9jdW1lbnRzL1dvcmsvaG9uZXlwb3dlci9zcmMvbW9kdWxlLmNvZmZlZSJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtBQ0FBLE9BQUEsQ0FBUSxVQUFSOztBQUNBLE9BQUEsQ0FBUSxPQUFSOztBQUVBLE1BQU0sQ0FBQyxPQUFQLEdBQWlCOzs7O0FDSGpCLElBQUE7O0FBQUEsR0FBQSxHQUFNIiwiZmlsZSI6ImdlbmVyYXRlZC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzQ29udGVudCI6WyIoZnVuY3Rpb24gZSh0LG4scil7ZnVuY3Rpb24gcyhvLHUpe2lmKCFuW29dKXtpZighdFtvXSl7dmFyIGE9dHlwZW9mIHJlcXVpcmU9PVwiZnVuY3Rpb25cIiYmcmVxdWlyZTtpZighdSYmYSlyZXR1cm4gYShvLCEwKTtpZihpKXJldHVybiBpKG8sITApO3ZhciBmPW5ldyBFcnJvcihcIkNhbm5vdCBmaW5kIG1vZHVsZSAnXCIrbytcIidcIik7dGhyb3cgZi5jb2RlPVwiTU9EVUxFX05PVF9GT1VORFwiLGZ9dmFyIGw9bltvXT17ZXhwb3J0czp7fX07dFtvXVswXS5jYWxsKGwuZXhwb3J0cyxmdW5jdGlvbihlKXt2YXIgbj10W29dWzFdW2VdO3JldHVybiBzKG4/bjplKX0sbCxsLmV4cG9ydHMsZSx0LG4scil9cmV0dXJuIG5bb10uZXhwb3J0c312YXIgaT10eXBlb2YgcmVxdWlyZT09XCJmdW5jdGlvblwiJiZyZXF1aXJlO2Zvcih2YXIgbz0wO288ci5sZW5ndGg7bysrKXMocltvXSk7cmV0dXJuIHN9KSIsInJlcXVpcmUgJy4vbW9kdWxlJ1xucmVxdWlyZSAncmVkdXgnXG5cbm1vZHVsZS5leHBvcnRzID0gNCIsImZvbyA9IDMiXX0=
+},{"./ActionTypes":1,"lodash":"lodash","redux":"redux"}]},{},[2]);

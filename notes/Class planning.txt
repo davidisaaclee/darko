@@ -1,0 +1,83 @@
+# SCRecAndWebView
+
+- Entity
+	- Character
+		- [Behaviors]
+		- Parameters
+	- Text
+- Behaviors
+- World
+
+
+# 2
+
+- World
+	- laws - leave room
+- Paths
+	- triggers along path
+	- control value (touch / time / more)
+- Entities
+	- attached to path
+- Trigger
+	- message to a target
+
+
+
+- World
+	- entities : [Entity]
+	- paths : [Path]
+
+- Path > Timeline
+	- spline : Spline
+
+- Timeline
+	- triggers : [Trigger, Float]
+	- spline : Spline
+
+- PathFollowerInfo
+	- path : Path
+	- progress : Float
+
+- Message - generic container for communication among entities
+	- actionType : String
+	- data : Dictionary<String, Object>
+
+- Trigger - an "instance" of a Message
+	- message : Message
+	- receiver : Entity
+
+- Entity - something which can be drawn with a transform
+	- transform
+	- bounds
+	- [... i'm sure SpriteKit provides a lot of this]
+	- draw()
+	- hitTest() : Point -> Boolean
+	- collidesWith() : Entity -> HitInfo (?)
+
+- Character > Entity - interactive entity; can be attached to a path
+	- pathInfo : PathInfo
+
+- Spline
+	- distanceToPoint() : Point -> Number
+		- used for dragging things onto paths
+	- pointAtPosition() : Float -> Point
+		- interpolate along path
+
+
+
+- Store<a>
+	- dispatch() : Action -> Void
+	- subscribe() : (() -> Void) -> Void
+	- getState() : () -> a
+
+
+
+
+
+
+# Agenda
+- sustenance
+	- M, Th - 2pm
+	- GitHub issue tracker
+- vision
+- code structure

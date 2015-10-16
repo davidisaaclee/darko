@@ -1,2 +1,3 @@
 module.exports =
-  DeltaTime: 'deltaTime'
+  DeltaTime: 'DeltaTime'
+  AddTrigger: 'AddTrigger'

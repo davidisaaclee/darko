@@ -1,37 +1,37 @@
 require 'redux'
 _ = require 'lodash'
-k = require './actionTypes'
+k = require './ActionTypes'
 
-initialState =
-  timelines:
-    'timeline1':
-      length: 2
-      triggers: []
-      mappings: []
-  entities:
-    'entity1':
-      attachedTimelines: [
-        id: 'timeline1'
-        progress: 0
-      ]
 
-timelineReducer = (state = initialState, action) ->
+timelineReducer = (state, action) ->
+  if state is undefined
+    console.warn 'Reducer received no state.'
+
   switch action.type
     when k.DeltaTime
-      {delta} = action
+      {delta} = action.data
 
-      return _.assign {}, state, {
+      entities =
         entities: _.mapValues state.entities, (entity, id) ->
-          _.assign entity, {
-            attachedTimelines: entity.attachedTimelines.map (timelineInfo) ->
-              scaledDelta = delta / state.timelines[timelineInfo.id].length
-              _.assign timelineInfo, {
-                progress: timelineInfo.progress + scaledDelta
-              }
-          }
-      }
+          timelines =
+            attachedTimelines: _.map entity.attachedTimelines, (timelineInfo) ->
+              progressDelta = delta / state.timelines[timelineInfo.id].length
+              progress = progress: timelineInfo.progress + progressDelta
+
+              return _.assign timelineInfo, progress
+          return _.assign entity, timelines
+      return _.assign {}, state, entities
+
+
+    when k.AddTrigger
+      {position, action} = action.data
+
+      _.assign {}, state
+
     else
       return state
+
+
 
 
 module.exports =

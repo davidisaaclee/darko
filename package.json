@@ -6,14 +6,17 @@
   "scripts": {
     "build-js-vendor": "browserify -r lodash -r redux -o dist/vendor.js",
     "build-js": "browserify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\"",
-    "test": "browserify -x lodash -x redux spec/testrunner.coffee -o spec/allspec.js -t coffeeify --extension=\".coffee\"; jasmine",
-    "run-tests": "jasmine",
+
+    "//": "Using `globstar` here for recursive wildcard support.",
+    "run-tests": "globstar --node -- jasmine-node --coffee \"spec/**/*[Ss]pec.coffee\"; exit 0",
+
     "watch-js": "watchify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\" -dv",
     "watch-tests": "watchify -x lodash -x redux spec/testrunner.coffee -o spec/allspec.js -t coffeeify --extension=\".coffee\" -dv",
-    "build": "npm run build-js & npm run test",
-    "watch": "npm run watch-js & npm run watch-tests",
+    "build": "npm run build-js; npm run test",
+    "test": "npm run build-js; npm run run-tests",
+    "watch": "npm run watch-js; npm run watch-tests",
     "livereload": "livereloadify dist",
-    "dev": "npm run watch & npm run livereload"
+    "dev": "npm run watch; npm run livereload"
   },
   "author": "David Isaac Lee <david@david-lee.net> (http://david-lee.net/)",
   "license": "ISC",
@@ -21,8 +24,9 @@
     "autoprefixer-stylus": "^0.8.0",
     "browserify": "^11.2.0",
     "coffeeify": "^1.1.0",
+    "coffeetape": "^1.0.1",
     "jasmine": "^2.3.2",
-    "jasmine-node": "^1.14.5",
+    "jasmine-node": "^2.0.0-beta4",
     "livereloadify": "^2.0.0",
     "stylus": "^0.52.4",
     "watchify": "^3.4.0"
