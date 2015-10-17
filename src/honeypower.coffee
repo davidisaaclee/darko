@@ -3,6 +3,7 @@ _ = require 'lodash'
 k = require './ActionTypes'
 
 mapAssign = require './util/mapAssign'
+deepClone = require './util/deepClone'
 
 
 timelineReducer = (state, action) ->
@@ -11,34 +12,29 @@ timelineReducer = (state, action) ->
 
   switch action.type
     when k.DeltaTime
-      {delta} = action.data
-
-      # TODO: this might need to be a deep clone
-      mapAssign (_.clone state),
-        'entities.*.attachedTimelines.*.progress',
-        (val, wildcardVals, wildcards) ->
-          [entity, attachedTimeline] = wildcardVals
-
-          timelineLength = state.timelines[attachedTimeline.id].length
-          progressDelta = delta / timelineLength
-
-          return val + progressDelta
+      incrementAllTimelinesProgress state, action.data
 
     when k.AddTrigger
-      {timeline, position, action} = action.data
-
-      trigger =
-        position: position
-        action: action
-
-      mapAssign (_.clone state),
-        "timelines.#{timeline}.triggers",
-        (value) -> [value..., trigger]
+      addTrigger state, action.data
 
     else
       return state
 
 
+incrementAllTimelinesProgress = (state, {delta}) ->
+  mapAssign (deepClone state),
+    'entities.*.attachedTimelines.*.progress',
+    (val, wildcardVals, wildcards) ->
+      [entity, attachedTimeline] = wildcardVals
+      timelineLength = state.timelines[attachedTimeline.id].length
+      progressDelta = delta / timelineLength
+      return val + progressDelta
+
+
+addTrigger = (state, {timeline, position, action}) ->
+  mapAssign (deepClone state),
+    "timelines.#{timeline}.triggers",
+    (value) -> [value..., {position: position, action: action}]
 
 
 module.exports =

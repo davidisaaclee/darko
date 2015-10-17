@@ -1,6 +1,6 @@
 _ = require 'lodash'
 
-module.exports = assertPure = (getState, procedure, deep = false) ->
+module.exports = assertPure = (getState, procedure, deep = true) ->
   preState = do getState
   preCopy = _.clone preState
   expect preState
@@ -14,11 +14,17 @@ module.exports = assertPure = (getState, procedure, deep = false) ->
     .toEqual preCopy
 
   isNot = (a, b) ->
-    expect a
-      .not.toBe b
+    # if object type
+    if typeof a is 'object'
+      expect a
+        .not.toBe b
+      if deep
+        (Object.keys a).forEach (key) ->
+          isNot a[key], b[key]
 
-    if deep
-      (Object.keys a).forEach (key) ->
-        isNot a[key], b[key]
+    # if value type
+    else
+      # treat all values as distinct
+      return
 
   isNot preState, postState

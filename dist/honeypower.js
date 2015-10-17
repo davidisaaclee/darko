@@ -6,7 +6,7 @@ module.exports = {
 
 
 },{}],2:[function(require,module,exports){
-var _, k, mapAssign, timelineReducer,
+var _, addTrigger, deepClone, incrementAllTimelinesProgress, k, mapAssign, timelineReducer,
   slice = [].slice;
 
 require('redux');
@@ -17,33 +17,43 @@ k = require('./ActionTypes');
 
 mapAssign = require('./util/mapAssign');
 
+deepClone = require('./util/deepClone');
+
 timelineReducer = function(state, action) {
-  var delta, position, ref, timeline, trigger;
   if (state === void 0) {
     console.warn('Reducer received no state.');
   }
   switch (action.type) {
     case k.DeltaTime:
-      delta = action.data.delta;
-      return mapAssign(_.clone(state), 'entities.*.attachedTimelines.*.progress', function(val, wildcardVals, wildcards) {
-        var attachedTimeline, entity, progressDelta, timelineLength;
-        entity = wildcardVals[0], attachedTimeline = wildcardVals[1];
-        timelineLength = state.timelines[attachedTimeline.id].length;
-        progressDelta = delta / timelineLength;
-        return val + progressDelta;
-      });
+      return incrementAllTimelinesProgress(state, action.data);
     case k.AddTrigger:
-      ref = action.data, timeline = ref.timeline, position = ref.position, action = ref.action;
-      trigger = {
-        position: position,
-        action: action
-      };
-      return mapAssign(_.clone(state), "timelines." + timeline + ".triggers", function(value) {
-        return slice.call(value).concat([trigger]);
-      });
+      return addTrigger(state, action.data);
     default:
       return state;
   }
+};
+
+incrementAllTimelinesProgress = function(state, arg) {
+  var delta;
+  delta = arg.delta;
+  return mapAssign(deepClone(state), 'entities.*.attachedTimelines.*.progress', function(val, wildcardVals, wildcards) {
+    var attachedTimeline, entity, progressDelta, timelineLength;
+    entity = wildcardVals[0], attachedTimeline = wildcardVals[1];
+    timelineLength = state.timelines[attachedTimeline.id].length;
+    progressDelta = delta / timelineLength;
+    return val + progressDelta;
+  });
+};
+
+addTrigger = function(state, arg) {
+  var action, position, timeline;
+  timeline = arg.timeline, position = arg.position, action = arg.action;
+  return mapAssign(deepClone(state), "timelines." + timeline + ".triggers", function(value) {
+    return slice.call(value).concat([{
+        position: position,
+        action: action
+      }]);
+  });
 };
 
 module.exports = {
@@ -51,7 +61,25 @@ module.exports = {
 };
 
 
-},{"./ActionTypes":1,"./util/mapAssign":3,"lodash":"lodash","redux":"redux"}],3:[function(require,module,exports){
+},{"./ActionTypes":1,"./util/deepClone":3,"./util/mapAssign":4,"lodash":"lodash","redux":"redux"}],3:[function(require,module,exports){
+var _, deepClone;
+
+_ = require('lodash');
+
+module.exports = deepClone = function(obj) {
+  var result;
+  result = _.clone(obj);
+  if (typeof result === 'object') {
+    return _.mapValues(result, function(value, key) {
+      return deepClone(value);
+    });
+  } else {
+    return result;
+  }
+};
+
+
+},{"lodash":"lodash"}],4:[function(require,module,exports){
 
 /*
 Utility for mapping `Object.assign()` over arrays and objects.
