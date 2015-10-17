@@ -11,6 +11,14 @@ timelineReducer = (state, action) ->
     when k.DeltaTime
       {delta} = action.data
 
+      # mapAssign {}, state, 'entities.*.attachedTimelines.*.progress', (val, wildcardVals, wildcards) ->
+      #   [entity, attachedTimeline] = wildcardVals
+
+      #   timelineLength = state.timelines[attachedTimeline.id].length
+      #   progressDelta = delta / timelineLength
+
+      #   return val + progressDelta
+
       entities =
         entities: _.mapValues state.entities, (entity, id) ->
           timelines =
@@ -27,6 +35,7 @@ timelineReducer = (state, action) ->
       {position, action} = action.data
 
       _.assign {}, state
+
 
     else
       return state

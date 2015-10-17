@@ -15,7 +15,7 @@ _ = require('lodash');
 k = require('./ActionTypes');
 
 timelineReducer = function(state, action) {
-  var delta, entities;
+  var delta, entities, position, ref;
   if (state === void 0) {
     console.warn('Reducer received no state.');
   }
@@ -39,6 +39,9 @@ timelineReducer = function(state, action) {
         })
       };
       return _.assign({}, state, entities);
+    case k.AddTrigger:
+      ref = action.data, position = ref.position, action = ref.action;
+      return _.assign({}, state);
     default:
       return state;
   }
