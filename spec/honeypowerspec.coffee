@@ -3,6 +3,7 @@ k = require '../src/ActionTypes'
 hp = require '../src/honeypower'
 
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
+assertPure = require './util/assertPure'
 
 
 describe 'timeline actions', () ->
@@ -16,10 +17,7 @@ describe 'timeline actions', () ->
       timelines:
         'timeline1':
           length: 2
-          triggers: [
-            position: 0.6
-            action: (entity) -> _.assign entity.transform.position
-          ]
+          triggers: []
           mappings: []
       entities:
         'entity1':
@@ -33,31 +31,37 @@ describe 'timeline actions', () ->
     expect @store.getState().entities['entity1'].attachedTimelines[0].progress
       .toBe 0
 
-    @store.dispatch
-      type: k.DeltaTime
-      data:
-        delta: 1
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.DeltaTime
+        data:
+          delta: 1
+
     expect @store.getState().entities['entity1'].attachedTimelines[0].progress
       .toBe 0.5
 
-    @store.dispatch
-      type: k.DeltaTime
-      data:
-        delta: 1
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.DeltaTime
+        data:
+          delta: 1
+
     expect @store.getState().entities['entity1'].attachedTimelines[0].progress
       .toBe 1
 
 
-  xit 'can add new triggers', () ->
+  it 'can add new triggers', () ->
     expect @store.getState().timelines['timeline1'].triggers.length
       .toBe 0
 
     triggerActionSpy = jasmine.createSpy 'TriggerAction'
-    @store.dispatch
-      type: k.AddTrigger
-      data:
-        position: 0.6
-        action: triggerActionSpy
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AddTrigger
+        data:
+          timeline: 'timeline1'
+          position: 0.6
+          action: triggerActionSpy
 
     expect @store.getState().timelines['timeline1'].triggers.length
       .toBe 1
