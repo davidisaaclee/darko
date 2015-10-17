@@ -1,12 +1,12 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = {
-  DeltaTime: 'DeltaTime',
+  ProgressEntityTimeline: 'ProgressEntityTimeline',
   AddTrigger: 'AddTrigger'
 };
 
 
 },{}],2:[function(require,module,exports){
-var _, baseStateReducer, combinedReducer, deepClone, k, mapAssign, redux, timelineReducer,
+var _, baseStateReducer, combinedReducer, k, mapAssign, redux, timelineReducer,
   slice = [].slice;
 
 redux = require('redux');
@@ -17,32 +17,34 @@ k = require('./ActionTypes');
 
 mapAssign = require('./util/mapAssign');
 
-deepClone = require('./util/deepClone');
-
-timelineReducer = function(state, action) {
-  if (state === void 0) {
-    return console.warn('Reducer received no state.');
-  } else {
-    return deepClone(state);
-  }
-};
-
 baseStateReducer = function(state, action) {
-  var delta;
+  var delta, entity, ref, timelines;
   if (state == null) {
     state = {};
   }
-  if (action.type === k.DeltaTime) {
-    delta = action.data.delta;
-    return mapAssign(deepClone(state), 'entities.*.attachedTimelines.*.progress', function(val, wildcardVals, wildcards) {
-      var attachedTimeline, entity, progressDelta, timelineLength;
-      entity = wildcardVals[0], attachedTimeline = wildcardVals[1];
-      timelineLength = state.timelines[attachedTimeline.id].length;
-      progressDelta = delta / timelineLength;
-      return val + progressDelta;
+  if (action.type === k.ProgressEntityTimeline) {
+    ref = action.data, entity = ref.entity, timelines = ref.timelines, delta = ref.delta;
+    return mapAssign(_.cloneDeep(state), 'entities.*.attachedTimelines.*.progress', function(oldProgress, wildcardVals, wildcards) {
+      var attachedTimeline, entityId, entityObj, newProgress, progressDelta, timeline, timelineIdx;
+      entityId = wildcards[0], timelineIdx = wildcards[1];
+      entityObj = wildcardVals[0], attachedTimeline = wildcardVals[1];
+      if ((entityId === entity) && (_.contains(timelines, attachedTimeline.id))) {
+        timeline = state.timelines[attachedTimeline.id];
+        progressDelta = delta / timeline.length;
+        newProgress = oldProgress + progressDelta;
+        timeline.triggers.filter(function(trigger) {
+          var ref1;
+          return (oldProgress < (ref1 = trigger.position) && ref1 <= newProgress);
+        }).forEach(function(trigger) {
+          return trigger.action();
+        });
+        return newProgress;
+      } else {
+        return oldProgress;
+      }
     });
   } else {
-    return deepClone(state);
+    return state;
   }
 };
 
@@ -53,19 +55,19 @@ timelineReducer = function(state, action) {
   }
   if (action.type === k.AddTrigger) {
     ref = action.data, timeline = ref.timeline, position = ref.position, action = ref.action;
-    return mapAssign(deepClone(state), timeline + ".triggers", function(value) {
+    return mapAssign(_.cloneDeep(state), timeline + ".triggers", function(value) {
       return slice.call(value).concat([{
           position: position,
           action: action
         }]);
     });
   } else {
-    return deepClone(state);
+    return state;
   }
 };
 
 combinedReducer = function(state, action) {
-  var childReducers, reduceOverChildren;
+  var childReducers, reduceOverChildren, result;
   if (state == null) {
     state = {};
   }
@@ -79,36 +81,15 @@ combinedReducer = function(state, action) {
     changedState[key] = childReducers[key](acc[key], action);
     return _.assign({}, acc, changedState);
   };
-  return Object.keys(childReducers).reduce(reduceOverChildren, state);
+  result = Object.keys(childReducers).reduce(reduceOverChildren, state);
+  Object.freeze(result);
+  return result;
 };
 
 module.exports = combinedReducer;
 
 
-},{"./ActionTypes":1,"./util/deepClone":3,"./util/mapAssign":4,"lodash":"lodash","redux":"redux"}],3:[function(require,module,exports){
-var _, deepClone;
-
-_ = require('lodash');
-
-module.exports = deepClone = function(obj) {
-  var result;
-  result = _.clone(obj);
-  switch (obj.constructor) {
-    case Object:
-      return _.mapValues(result, function(value, key) {
-        return deepClone(value);
-      });
-    case Array:
-      return _.map(result, function(value) {
-        return deepClone(value);
-      });
-    default:
-      return result;
-  }
-};
-
-
-},{"lodash":"lodash"}],4:[function(require,module,exports){
+},{"./ActionTypes":1,"./util/mapAssign":3,"lodash":"lodash","redux":"redux"}],3:[function(require,module,exports){
 
 /*
 Utility for mapping `Object.assign()` over arrays and objects.

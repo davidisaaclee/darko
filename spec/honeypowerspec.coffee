@@ -27,14 +27,16 @@ describe 'timeline actions', () ->
           ]
 
 
-  it 'should respond to delta time', () ->
+  it 'can progress timelines', () ->
     expect @store.getState().entities['entity1'].attachedTimelines[0].progress
       .toBe 0
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
-        type: k.DeltaTime
+        type: k.ProgressEntityTimeline
         data:
+          entity: 'entity1'
+          timelines: ['timeline1']
           delta: 1
 
     expect @store.getState().entities['entity1'].attachedTimelines[0].progress
@@ -42,8 +44,10 @@ describe 'timeline actions', () ->
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
-        type: k.DeltaTime
+        type: k.ProgressEntityTimeline
         data:
+          entity: 'entity1'
+          timelines: ['timeline1']
           delta: 1
 
     expect @store.getState().entities['entity1'].attachedTimelines[0].progress
@@ -74,5 +78,38 @@ describe 'timeline actions', () ->
       .toBe 0
 
 
-  # it 'should trigger events when passed over', () ->
-  #   @store.
+  it 'should trigger events when passed over', () ->
+    triggerActionSpy = jasmine.createSpy 'TriggerAction'
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AddTrigger
+        data:
+          timeline: 'timeline1'
+          position: 0.6
+          action: triggerActionSpy
+
+      @store.dispatch
+        type: k.ProgressEntityTimeline
+        data:
+          entity: 'entity1'
+          timelines: ['timeline1']
+          delta: 1
+
+    expect @store.getState().entities['entity1'].attachedTimelines[0].progress
+      .toBe 0.5
+    expect triggerActionSpy.calls.count()
+      .toBe 0
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.ProgressEntityTimeline
+        data:
+          entity: 'entity1'
+          timelines: ['timeline1']
+          delta: 1
+
+    expect @store.getState().entities['entity1'].attachedTimelines[0].progress
+      .toBe 1
+    expect triggerActionSpy.calls.count()
+      .toBe 1

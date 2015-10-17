@@ -1,3 +1,3 @@
 module.exports =
-  DeltaTime: 'DeltaTime'
+  ProgressEntityTimeline: 'ProgressEntityTimeline'
   AddTrigger: 'AddTrigger'
