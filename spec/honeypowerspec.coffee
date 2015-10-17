@@ -1,6 +1,6 @@
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
-hp = require '../src/honeypower'
+hpReducer = require '../src/honeypower'
 
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
 assertPure = require './util/assertPure'
@@ -13,7 +13,7 @@ describe 'timeline actions', () ->
     ObjectSubsetMatcher jasmine
 
     # Make our initial store.
-    @store = createStore hp.timelineReducer,
+    @store = createStore hpReducer,
       timelines:
         'timeline1':
           length: 2

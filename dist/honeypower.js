@@ -6,10 +6,10 @@ module.exports = {
 
 
 },{}],2:[function(require,module,exports){
-var _, addTrigger, deepClone, incrementAllTimelinesProgress, k, mapAssign, timelineReducer,
+var _, baseStateReducer, combinedReducer, deepClone, k, mapAssign, redux, timelineReducer,
   slice = [].slice;
 
-require('redux');
+redux = require('redux');
 
 _ = require('lodash');
 
@@ -21,44 +21,68 @@ deepClone = require('./util/deepClone');
 
 timelineReducer = function(state, action) {
   if (state === void 0) {
-    console.warn('Reducer received no state.');
-  }
-  switch (action.type) {
-    case k.DeltaTime:
-      return incrementAllTimelinesProgress(state, action.data);
-    case k.AddTrigger:
-      return addTrigger(state, action.data);
-    default:
-      return state;
+    return console.warn('Reducer received no state.');
+  } else {
+    return deepClone(state);
   }
 };
 
-incrementAllTimelinesProgress = function(state, arg) {
+baseStateReducer = function(state, action) {
   var delta;
-  delta = arg.delta;
-  return mapAssign(deepClone(state), 'entities.*.attachedTimelines.*.progress', function(val, wildcardVals, wildcards) {
-    var attachedTimeline, entity, progressDelta, timelineLength;
-    entity = wildcardVals[0], attachedTimeline = wildcardVals[1];
-    timelineLength = state.timelines[attachedTimeline.id].length;
-    progressDelta = delta / timelineLength;
-    return val + progressDelta;
-  });
+  if (state == null) {
+    state = {};
+  }
+  if (action.type === k.DeltaTime) {
+    delta = action.data.delta;
+    return mapAssign(deepClone(state), 'entities.*.attachedTimelines.*.progress', function(val, wildcardVals, wildcards) {
+      var attachedTimeline, entity, progressDelta, timelineLength;
+      entity = wildcardVals[0], attachedTimeline = wildcardVals[1];
+      timelineLength = state.timelines[attachedTimeline.id].length;
+      progressDelta = delta / timelineLength;
+      return val + progressDelta;
+    });
+  } else {
+    return deepClone(state);
+  }
 };
 
-addTrigger = function(state, arg) {
-  var action, position, timeline;
-  timeline = arg.timeline, position = arg.position, action = arg.action;
-  return mapAssign(deepClone(state), "timelines." + timeline + ".triggers", function(value) {
-    return slice.call(value).concat([{
-        position: position,
-        action: action
-      }]);
-  });
+timelineReducer = function(state, action) {
+  var position, ref, timeline;
+  if (state == null) {
+    state = {};
+  }
+  if (action.type === k.AddTrigger) {
+    ref = action.data, timeline = ref.timeline, position = ref.position, action = ref.action;
+    return mapAssign(deepClone(state), timeline + ".triggers", function(value) {
+      return slice.call(value).concat([{
+          position: position,
+          action: action
+        }]);
+    });
+  } else {
+    return deepClone(state);
+  }
 };
 
-module.exports = {
-  timelineReducer: timelineReducer
+combinedReducer = function(state, action) {
+  var childReducers, reduceOverChildren;
+  if (state == null) {
+    state = {};
+  }
+  state = baseStateReducer(state, action);
+  childReducers = {
+    'timelines': timelineReducer
+  };
+  reduceOverChildren = function(acc, key) {
+    var changedState;
+    changedState = {};
+    changedState[key] = childReducers[key](acc[key], action);
+    return _.assign({}, acc, changedState);
+  };
+  return Object.keys(childReducers).reduce(reduceOverChildren, state);
 };
+
+module.exports = combinedReducer;
 
 
 },{"./ActionTypes":1,"./util/deepClone":3,"./util/mapAssign":4,"lodash":"lodash","redux":"redux"}],3:[function(require,module,exports){
@@ -69,12 +93,17 @@ _ = require('lodash');
 module.exports = deepClone = function(obj) {
   var result;
   result = _.clone(obj);
-  if (typeof result === 'object') {
-    return _.mapValues(result, function(value, key) {
-      return deepClone(value);
-    });
-  } else {
-    return result;
+  switch (obj.constructor) {
+    case Object:
+      return _.mapValues(result, function(value, key) {
+        return deepClone(value);
+      });
+    case Array:
+      return _.map(result, function(value) {
+        return deepClone(value);
+      });
+    default:
+      return result;
   }
 };
 
