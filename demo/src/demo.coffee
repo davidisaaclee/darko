@@ -27,9 +27,10 @@ update = (state, dispatch) ->
 
   Object.keys domState
     .forEach (key) ->
-      position = state.entities.dict[key].data.position
-      domState[key].style.left = "#{position.x}px"
-      domState[key].style.top = "#{position.y}px"
+      data = state.entities.dict[key].data
+      domState[key].style.left = "#{data.position.x}px"
+      domState[key].style.top = "#{data.position.y}px"
+      domState[key].style.strokeColor = data.strokeColor
 
 
 diffKeys = (previous, current) ->
@@ -50,7 +51,7 @@ setupTimelines = (dispatch) ->
     type: k.AddTimeline
     data:
       length: 1
-      loop: true
+      shouldLoop: true
 
   dispatch
     type: k.AddMapping
@@ -62,6 +63,15 @@ setupTimelines = (dispatch) ->
             x: progress * 100
             y: progress * 100
 
+  dispatch
+    type: k.AddTrigger
+    data:
+      timeline: 'timeline-0'
+      position: 0.5
+      action: (progress, entityId, entityData) ->
+        _.assign {}, entityData,
+          strokeColor: randomColor()
+
 setupInteractions = (dispatch, store) ->
   addEntityButton = document.getElementById 'add-entity'
   addEntityButton.addEventListener 'click', () ->
@@ -69,6 +79,7 @@ setupInteractions = (dispatch, store) ->
       type: k.AddEntity
       data:
         initialData:
+          strokeColor: 'black'
           position:
             x: 0
             y: 0
@@ -98,3 +109,10 @@ setupInteractions = (dispatch, store) ->
     previousSliderValue = getTimelineValue()
 
 do setup
+
+
+
+# --- Helpers
+
+randomColor = () ->
+  "rgba(#{Math.random()}, #{Math.random()}, #{Math.random()}, 0.3)"

@@ -42,15 +42,12 @@ describe 'construction', () ->
 
     expect (Object.keys @store.getState().entities.dict).length
       .toBe 2
-    mostRecentKey = (Object.keys @store.getState().entities.dict)[1]
+    mostRecentKey = 'entity-1'
     expect @store.getState().entities.dict[mostRecentKey].data
       .toEqual initialData
 
 
   it 'can add new timelines', () ->
-    getMostRecentTimelineKey = () =>
-      _.last (Object.keys @store.getState().timelines.dict)
-
     expect (Object.keys @store.getState().timelines.dict).length
       .toBe 0
 
@@ -61,7 +58,7 @@ describe 'construction', () ->
 
     expect (Object.keys @store.getState().timelines.dict).length
       .toBe 1
-    expect @store.getState().timelines.dict[getMostRecentTimelineKey()]
+    expect @store.getState().timelines.dict['timeline-0']
       .toMatchObject
         length: 2
         shouldLoop: false
@@ -75,7 +72,7 @@ describe 'construction', () ->
 
     expect (Object.keys @store.getState().timelines.dict).length
       .toBe 2
-    expect @store.getState().timelines.dict[getMostRecentTimelineKey()]
+    expect @store.getState().timelines.dict['timeline-1']
       .toMatchObject
         length: 1
         shouldLoop: true
@@ -250,7 +247,9 @@ describe 'honeypower', () ->
     expect @store.getState().timelines.dict['timeline-0'].triggers.length
       .toBe 0
 
-    triggerActionSpy = jasmine.createSpy 'TriggerAction'
+    triggerActionSpy = (progress, id, data) -> data
+    triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
+      .and.callThrough()
     assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.AddTrigger
@@ -271,7 +270,19 @@ describe 'honeypower', () ->
 
 
   it 'should trigger events when passed over', () ->
-    triggerActionSpy = jasmine.createSpy 'TriggerAction'
+    triggerActionSpy = (progress, entityId, data) ->
+      _.assign {}, data,
+        foo: data.foo + 1
+    triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
+      .and.callThrough()
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            foo: 0
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
@@ -306,11 +317,17 @@ describe 'honeypower', () ->
     expect triggerActionSpy.calls.count()
       .toBe 1
     expect triggerActionSpy.calls.mostRecent().args
-      .toEqual ['entity-0']
+      .toEqual [1, 'entity-0', foo: 0]
+    expect @store.getState().entities.dict['entity-0'].data
+      .toMatchObject
+        foo: 1
+
 
 
   it 'should trigger predicate-driven events', () ->
-    triggerActionSpy = jasmine.createSpy 'TriggerAction'
+    triggerActionSpy = (progress, id, data) -> data
+    triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
+      .and.callThrough()
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
@@ -347,7 +364,7 @@ describe 'honeypower', () ->
     expect triggerActionSpy.calls.count()
       .toBe 1
     expect triggerActionSpy.calls.mostRecent().args
-      .toEqual ['entity-0']
+      .toEqual [0.2, 'entity-0', @store.getState().entities.dict['entity-0'].data]
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
@@ -375,7 +392,7 @@ describe 'honeypower', () ->
     expect triggerActionSpy.calls.count()
       .toBe 2
     expect triggerActionSpy.calls.mostRecent().args
-      .toEqual ['entity-0']
+      .toEqual [0.4, 'entity-0', @store.getState().entities.dict['entity-0'].data]
 
 
   it 'can map values', () ->
