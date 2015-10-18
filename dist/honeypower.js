@@ -3464,7 +3464,16 @@ module.exports = {
     entity: String
     timeline: String
    */
-  AttachEntityToTimeline: 'AttachEntityToTimeline'
+  AttachEntityToTimeline: 'AttachEntityToTimeline',
+
+  /*
+  Updates `entity`'s `data` property with `changes` (which are applied to the
+    existing `data` via `updeep`).
+  
+    entity: String
+    changes: Object
+   */
+  UpdateEntityData: 'UpdateEntityData'
 };
 
 
@@ -3581,7 +3590,7 @@ module.exports = addChildReducers(reducer, {
 
 
 },{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"./entities":93,"./timelines":94,"lodash":"lodash","updeep":77}],93:[function(require,module,exports){
-var _, addChildReducers, k, mapAssign, reducer, updeep;
+var _, addChildReducers, k, makeNewEntity, mapAssign, reducer, updeep;
 
 _ = require('lodash');
 
@@ -3593,8 +3602,15 @@ mapAssign = require('../util/mapAssign');
 
 addChildReducers = require('../util/addChildReducers');
 
+makeNewEntity = function() {
+  return {
+    attachedTimelines: [],
+    data: {}
+  };
+};
+
 reducer = function(state, action) {
-  var changes;
+  var changes, entity, ref, stateChanges;
   if (state == null) {
     state = {
       dict: {},
@@ -3608,10 +3624,22 @@ reducer = function(state, action) {
         dict: {},
         _spawnedCount: state._spawnedCount + 1
       };
-      changes.dict["entity-" + state._spawnedCount] = {
-        attachedTimelines: []
-      };
+      changes.dict["entity-" + state._spawnedCount] = makeNewEntity();
       return updeep(changes, state);
+    case k.UpdateEntityData:
+      ref = action.data, entity = ref.entity, changes = ref.changes;
+      if (state.dict[entity] != null) {
+        stateChanges = {
+          dict: {}
+        };
+        stateChanges.dict[entity] = {
+          data: changes
+        };
+        return updeep(stateChanges, state);
+      } else {
+        throw new Error("Attempted to update non-existant entity " + entity + ".");
+      }
+      break;
     default:
       return state;
   }

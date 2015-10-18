@@ -48,3 +48,12 @@ module.exports =
     timeline: String
   ###
   AttachEntityToTimeline: 'AttachEntityToTimeline'
+
+  ###
+  Updates `entity`'s `data` property with `changes` (which are applied to the
+    existing `data` via `updeep`).
+
+    entity: String
+    changes: Object
+  ###
+  UpdateEntityData: 'UpdateEntityData'

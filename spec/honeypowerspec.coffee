@@ -6,7 +6,7 @@ ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
 assertPure = require './util/assertPure'
 
 
-describe 'timeline construction', () ->
+describe 'construction', () ->
   beforeEach () ->
     # Add the custom object matcher.
     # (see `./util/ObjectSubsetMatcher` for description of this matcher)
@@ -75,7 +75,7 @@ describe 'timeline construction', () ->
 
 
 
-describe 'timeline actions', () ->
+describe 'honeypower', () ->
   beforeEach () ->
     # Add the custom object matcher.
     # (see `./util/ObjectSubsetMatcher` for description of this matcher)
@@ -307,3 +307,61 @@ describe 'timeline actions', () ->
 
     expect outputStream
       .toBe 3 / @store.getState().timelines.dict['timeline-0'].length
+
+
+  it 'can update entity data', () ->
+    expect @store.getState().entities.dict['entity-0'].data.color
+      .toBeUndefined
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            color: 'red'
+
+    expect @store.getState().entities.dict['entity-0'].data.color
+      .toBe 'red'
+
+    # assertPure (() => @store.getState()), () =>
+    #   @store.dispatch
+    #     type: k.UpdateEntityData
+    #     data:
+    #       entity: 'entity-0'
+    #       changes:
+    #         color: 'blue'
+
+    # expect @store.getState().entities.dict['entity-0'].data.color
+    #   .toBe 'blue'
+
+    # assertPure (() => @store.getState()), () =>
+    #   @store.dispatch
+    #     type: k.UpdateEntityData
+    #     data:
+    #       entity: 'entity-0'
+    #       changes:
+    #         position:
+    #           x: -1
+    #           y: 1
+
+    # expect @store.getState().entities.dict['entity-0'].data.position
+    #   .toEqual x: -1, y: 1
+    # expect @store.getState().entities.dict['entity-0'].data.color
+    #   .toBe 'blue'
+
+    # assertPure (() => @store.getState()), () =>
+    #   @store.dispatch
+    #     type: k.UpdateEntityData
+    #     data:
+    #       entity: 'entity-0'
+    #       changes:
+    #         color: 'green'
+    #         position:
+    #           x: 1
+    #           y: -1
+
+    # expect @store.getState().entities.dict['entity-0'].data.position
+    #   .toEqual x: 1, y: -1
+    # expect @store.getState().entities.dict['entity-0'].data.color
+    #   .toBe 'green'
