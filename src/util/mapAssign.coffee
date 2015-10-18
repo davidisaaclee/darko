@@ -1,3 +1,13 @@
+# TODO: Should we be using updeep instead?
+# https://github.com/substantial/updeep
+# Mapping over deep objects / arrays seems pretty cumbersome compared to
+#   `mapAssign()`'s wildcard paradigm; but the wildcards might be less efficient
+#   than `updeep`'s `map()`.
+# `updeep` also seems better for editing multiple paths.
+#
+# I'm using a mix for now. `mapAssign()` seems pretty convenient when editing a
+#   single value path.
+
 ###
 Utility for mapping `Object.assign()` over arrays and objects.
 

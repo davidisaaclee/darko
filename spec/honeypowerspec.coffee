@@ -1,6 +1,5 @@
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
-# hpReducer = require '../src/honeypower'
 hpReducer = require '../src/reducers/base'
 
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'

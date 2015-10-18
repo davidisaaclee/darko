@@ -1,18 +1,3 @@
-_ = require 'lodash'
-k = require './ActionTypes'
-
-updeep = require 'updeep'
-
-# TODO: Should we be using updeep instead?
-# https://github.com/substantial/updeep
-# Mapping over deep objects / arrays seems pretty cumbersome compared to
-#   `mapAssign()`'s wildcard paradigm; but the wildcards might be less efficient
-#   than `updeep`'s `map()`.
-# `updeep` also seems better for editing multiple paths.
-mapAssign = require './util/mapAssign'
-
-baseReducer = require './reducers/base'
-
 ###
 State ::=
   timelines: { id -> Timeline }
@@ -43,4 +28,4 @@ EntityTimelineRelation ::=
   progress: Float
 ###
 
-module.exports = baseReducer
+module.exports = require './reducers/base'

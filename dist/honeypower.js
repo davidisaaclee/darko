@@ -3469,18 +3469,6 @@ module.exports = {
 
 
 },{}],91:[function(require,module,exports){
-var _, baseReducer, k, mapAssign, updeep;
-
-_ = require('lodash');
-
-k = require('./ActionTypes');
-
-updeep = require('updeep');
-
-mapAssign = require('./util/mapAssign');
-
-baseReducer = require('./reducers/base');
-
 
 /*
 State ::=
@@ -3511,11 +3499,10 @@ EntityTimelineRelation ::=
   id: String
   progress: Float
  */
+module.exports = require('./reducers/base');
 
-module.exports = baseReducer;
 
-
-},{"./ActionTypes":90,"./reducers/base":92,"./util/mapAssign":96,"lodash":"lodash","updeep":77}],92:[function(require,module,exports){
+},{"./reducers/base":92}],92:[function(require,module,exports){
 var _, addChildReducers, entitiesReducer, k, mapAssign, reducer, timelinesReducer, updeep,
   slice = [].slice;
 
