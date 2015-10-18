@@ -8,12 +8,24 @@
         display: flex;
         flex-flow: column nowrap;
       }
+
+      .entity {
+        position: absolute;
+
+        border: 1px solid black;
+
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+      }
     </style>
   </head>
   <body>
     <div id="controls">
       <button id="add-entity">Add entity</button>
       <input id="timeline-slider" type="range" value="0"></input>
+    </div>
+    <div id="container">
     </div>
     <script type="text/javascript" src="dist/demo.js"></script>
   </body>

@@ -4,14 +4,32 @@ k = require '../../src/ActionTypes'
 reducer = require '../../src/reducers/base'
 
 domState = {}
+container = document.getElementById 'container'
+
 
 update = (state, dispatch) ->
   console.log state
-  # {added, removed} = diffKeys domState, state.entities.dict
-  # added.forEach (key) ->
-  #   elt = document.createElement 'div'
-  #   elt.
-  #   domState[key] =
+  {added, removed} = diffKeys domState, state.entities.dict
+  added.forEach (key) ->
+    elt = document.createElement 'div'
+    elt.classList.add 'entity'
+    container.appendChild elt
+    domState[key] = elt
+
+    dispatch
+      type: k.AttachEntityToTimeline
+      data:
+        entity: key
+        timeline: 'timeline-0'
+  removed.forEach (key) ->
+    domState[key].remove()
+    delete domState[key]
+
+  Object.keys domState
+    .forEach (key) ->
+      position = state.entities.dict[key].data.position
+      domState[key].style.left = "#{position.x}px"
+      domState[key].style.top = "#{position.y}px"
 
 
 diffKeys = (previous, current) ->
@@ -38,15 +56,11 @@ setupTimelines = (dispatch) ->
     type: k.AddMapping
     data:
       timeline: 'timeline-0'
-      mapping: (progress, prevProgress, entity) ->
-        dispatch
-          type: k.UpdateEntityData
-          data:
-            entity: entity
-            changes:
-              position:
-                x: progress * 100
-                y: progress * 100
+      mapping: (progress, entityId, entityData) ->
+        _.assign {}, entityData,
+          position:
+            x: progress * 100
+            y: progress * 100
 
 setupInteractions = (dispatch, store) ->
   addEntityButton = document.getElementById 'add-entity'
@@ -62,22 +76,24 @@ setupInteractions = (dispatch, store) ->
     mostRecentEntityKey =
       _.last (Object.keys store.getState().entities.dict)
 
-    dispatch
-      type: k.AttachEntityToTimeline
-      data:
-        entity: mostRecentEntityKey
-        timeline: 'timeline-0'
+    # dispatch
+    #   type: k.AttachEntityToTimeline
+    #   data:
+    #     entity: mostRecentEntityKey
+    #     timeline: 'timeline-0'
 
   timelineSlider = document.getElementById 'timeline-slider'
   getTimelineValue = () -> timelineSlider.value / 100
   previousSliderValue = getTimelineValue()
   timelineSlider.addEventListener 'input', (evt) ->
-    dispatch
-      type: k.ProgressEntityTimeline
-      data:
-        entity: 'entity-0'
-        timelines: ['timeline-0']
-        delta: getTimelineValue() - previousSliderValue
+    Object.keys domState
+      .forEach (entityId) ->
+        dispatch
+          type: k.ProgressEntityTimeline
+          data:
+            entity: entityId
+            timelines: ['timeline-0']
+            delta: getTimelineValue() - previousSliderValue
 
     previousSliderValue = getTimelineValue()
 

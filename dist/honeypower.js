@@ -3508,7 +3508,7 @@ Timeline ::=
    *   to progress along A as to progress along B.
   length: Number
   triggers: [Trigger]
-  mappings: [] # TODO
+  mappings: [Mapping]
 
 Entity ::=
   attachedTimelines: [EntityTimelineRelation]
@@ -3521,6 +3521,12 @@ Trigger ::=
    *   `true`, the trigger's `action` is performed.
   position: Float | Function
   action: Function
+
+Mapping ::= (progress: Float, entityId: String, entityData: Object) -> Object
+  progress - The timeline's most recent progress value.
+  entityId - The invoking entity's ID.
+  entityData - The invoking entity's most recent `data` field.
+  returns: An object of changes for the invoking entity's `data` field.
 
 EntityTimelineRelation ::=
   id: String
@@ -3752,9 +3758,7 @@ reducer = function(state, action) {
       });
     case k.SetTimelineLoop:
       ref3 = action.data, timeline = ref3.timeline, shouldLoop = ref3.shouldLoop;
-      return mapAssign(_.cloneDeep(state), "dict." + timeline + ".shouldLoop", function() {
-        return shouldLoop;
-      });
+      return mapAssign(_.cloneDeep(state), "dict." + timeline + ".shouldLoop", shouldLoop);
     default:
       return state;
   }
