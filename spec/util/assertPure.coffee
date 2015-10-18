@@ -1,6 +1,10 @@
 _ = require 'lodash'
 
-module.exports = assertPure = (getState, procedure, deep = false) ->
+###
+Uses Jasmine testing to assert that a procedure does not modify an existing
+state.
+###
+module.exports = assertPure = (getState, procedure, deep = true) ->
   preState = do getState
   preClone = _.cloneDeep preState
   expect preState

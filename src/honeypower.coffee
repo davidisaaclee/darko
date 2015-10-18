@@ -2,6 +2,8 @@ redux = require 'redux'
 _ = require 'lodash'
 k = require './ActionTypes'
 
+updeep = require 'updeep'
+
 # TODO: Should we be using updeep instead?
 # https://github.com/substantial/updeep
 # Mapping over deep objects / arrays seems pretty cumbersome compared to
@@ -13,7 +15,7 @@ mapAssign = require './util/mapAssign'
 ###
 State ::=
   timelines: { id -> Timeline }
-  entities: { id -> Entity }
+  entities: { id -> Entity | '_nextId': () -> String }
 
 Timeline ::=
   # Progress along the timeline is scaled by its `length`.
@@ -42,66 +44,131 @@ EntityTimelineRelation ::=
 
 
 baseStateReducer = (state = {}, action) ->
-  if action.type is k.ProgressEntityTimeline
-    {entity, timelines, delta} = action.data
+  switch action.type
+    when k.ProgressEntityTimeline
+      {entity, timelines, delta} = action.data
 
-    mapAssign (_.cloneDeep state),
-      'entities.*.attachedTimelines.*.progress',
-      (oldProgress, wildcardVals, wildcards) ->
-        [entityId, timelineIdx] = wildcards
-        [entityObj, attachedTimeline] = wildcardVals
+      mapAssign (_.cloneDeep state),
+        'entities.dict.*.attachedTimelines.*.progress',
+        (oldProgress, wildcardVals, wildcards) ->
+          [entityId, timelineIdx] = wildcards
+          [entityObj, timelineRelation] = wildcardVals
 
-        # Check if this timeline is one of the ones we want to update.
-        if (entityId == entity) and (_.contains timelines, attachedTimeline.id)
-          timeline = state.timelines[attachedTimeline.id]
-          progressDelta = delta / timeline.length
-          newProgress = oldProgress + progressDelta
+          # Check if this timeline is one of the ones we want to update.
+          if (entityId == entity) and (_.contains timelines, timelineRelation.id)
+            timeline = state.timelines.dict[timelineRelation.id]
+            progressDelta = delta / timeline.length
+            newProgress = oldProgress + progressDelta
 
-          # Trigger any triggers needed triggering.
-          timeline.triggers
-            .filter (trigger) ->
-              if _.isNumber trigger.position
-                return (oldProgress < trigger.position <= newProgress)
-              else if _.isFunction trigger.position
-                return trigger.position newProgress, oldProgress
-              else
-                console.warn 'Invalid trigger position on trigger', trigger
-                return false
-            .forEach (trigger) ->
-              do trigger.action
+            # Trigger any triggers needed triggering.
+            timeline.triggers
+              .filter (trigger) ->
+                if _.isNumber trigger.position
+                  return (oldProgress < trigger.position <= newProgress)
+                else if _.isFunction trigger.position
+                  return trigger.position newProgress, oldProgress
+                else
+                  console.warn 'Invalid trigger position on trigger', trigger
+                  return false
+              .forEach (trigger) ->
+                trigger.action entityId
 
-          return newProgress
+            # Update all mappings.
+            timeline.mappings
+              .forEach (mapping) ->
+                mapping newProgress, oldProgress, entityId
 
-        # Otherwise, just return the existing value.
-        else
-          return oldProgress
-  else state
+            return newProgress
+
+          # Otherwise, just return the existing value.
+          else
+            return oldProgress
+
+    when k.AttachEntityToTimeline
+      {entity, timeline, progress} = action.data
+      if not progress?
+        progress = 0
+
+      newAttachedTimeline =
+        id: timeline
+        progress: progress
+
+      mapAssign (_.cloneDeep state),
+        "entities.dict.#{entity}.attachedTimelines",
+        (oldAttachedTimelines) -> [oldAttachedTimelines..., newAttachedTimeline]
 
 
-timelineReducer = (state = {}, action) ->
-  if action.type is k.AddTrigger
-    {timeline, position, action} = action.data
-    mapAssign (_.cloneDeep state),
-      "#{timeline}.triggers",
-      (value) -> [value..., {position: position, action: action}]
-  else state
+
+    else state
+
+
+timelineReducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
+  switch action.type
+    when k.AddTimeline
+      {length} = action.data
+
+      changes =
+        dict: {}
+        _spawnedCount: state._spawnedCount + 1
+      # new entity
+      changes.dict["timeline-#{state._spawnedCount}"] =
+        length: length
+        triggers: []
+        mappings: []
+
+      updeep changes, state
+
+    when k.AddTrigger
+      {timeline, position, action} = action.data
+      mapAssign (_.cloneDeep state),
+        "dict.#{timeline}.triggers",
+        (oldTriggers) -> [oldTriggers..., {position: position, action: action}]
+
+    when k.AddMapping
+      {timeline, mapping} = action.data
+      mapAssign (_.cloneDeep state),
+        "dict.#{timeline}.mappings",
+        (oldMappings) -> [oldMappings..., mapping]
+
+    else state
+
+
+entityReducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
+  switch action.type
+    when k.AddEntity
+      {} = action.data
+
+      changes =
+        dict: {}
+        _spawnedCount: state._spawnedCount + 1
+      # new entity
+      changes.dict["entity-#{state._spawnedCount}"] =
+        attachedTimelines: []
+
+      updeep changes, state
+
+    else state
 
 
 combinedReducer = (state = {}, action) ->
-  state = baseStateReducer state, action
-
   childReducers =
     'timelines': timelineReducer
+    'entities': entityReducer
 
   # `acc` will hold our state as it gets updated by each reducer
   # `key` is the key of the reducer, as well as the substate's path
   reduceOverChildren = (acc, key) ->
     changedState = {}
     changedState[key] = childReducers[key] acc[key], action
-    _.assign {}, acc, changedState
+
+    # _.assign {}, acc, changedState
+    _.assign acc, changedState
+  state = _.assign {}, state
 
   result = Object.keys childReducers
     .reduce reduceOverChildren, state
+
+  result = baseStateReducer result, action
 
   # freeze this to ensure we're not accidentally mutating
   Object.freeze result
