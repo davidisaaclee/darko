@@ -6,10 +6,8 @@
   "scripts": {
     "build-js-vendor": "browserify -r lodash -r redux -o dist/vendor.js",
     "build-js": "browserify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\"",
-
-    "//": "Using `globstar` here for recursive wildcard support.",
+    "//": "Using `globstar` here for recursive wildcard support. (Also, using `jasmine-node` pretty much exclusively for the CoffeeScript support...)",
     "run-tests": "globstar --node -- jasmine-node --coffee \"spec/**/*[Ss]pec.coffee\"; exit 0",
-
     "watch-js": "watchify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\" -dv",
     "watch-tests": "watchify -x lodash -x redux spec/testrunner.coffee -o spec/allspec.js -t coffeeify --extension=\".coffee\" -dv",
     "build": "npm run build-js; npm run test",
@@ -33,6 +31,7 @@
   },
   "dependencies": {
     "lodash": "^3.10.1",
-    "redux": "^3.0.2"
+    "redux": "^3.0.2",
+    "updeep": "^0.10.1"
   }
 }
