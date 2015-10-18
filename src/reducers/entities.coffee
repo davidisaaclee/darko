@@ -4,19 +4,21 @@ k = require '../ActionTypes'
 mapAssign = require '../util/mapAssign'
 addChildReducers = require '../util/addChildReducers'
 
-makeNewEntity = () ->
+makeNewEntity = (initialData = {}) ->
   attachedTimelines: []
-  data: {}
+  data: initialData
 
 reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
   switch action.type
     when k.AddEntity
-      {} = action.data
+      # TODO: cleaner way to enable optional data
+      if action.data?
+        {initialData} = action.data
 
       changes =
         dict: {}
         _spawnedCount: state._spawnedCount + 1
-      changes.dict["entity-#{state._spawnedCount}"] = makeNewEntity()
+      changes.dict["entity-#{state._spawnedCount}"] = makeNewEntity initialData
 
       updeep changes, state
 

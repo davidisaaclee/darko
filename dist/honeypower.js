@@ -3436,9 +3436,14 @@ module.exports = {
   AddTrigger: 'AddTrigger',
 
   /*
-  Adds a new `mapping` function to a `timeline`. The `mapping` function expects
-    three arguments: the timeline's updated progress, the timeline's previous
-    progress, and the id of the invoking entity.
+  Adds a new `mapping` function to a `timeline`. A `mapping` function modifies
+    an entity's `data` field, based on an attached `timeline`'s progress.
+  The `mapping` function expects four arguments:
+    progress: Float - the timeline's updated progress
+    entity: the id of the invoking entity
+    data: the current `data` field of the invoking entity
+  The `mapping` function should return an object of changes to the existing
+    `data` field.
   
     timeline: String
     mapping: Function
@@ -3446,16 +3451,29 @@ module.exports = {
   AddMapping: 'AddMapping',
 
   /*
-  Adds a new entity.
+  Adds a new entity, with an optional initial `data` field.
+  
+    initialData: Object
    */
   AddEntity: 'AddEntity',
 
   /*
-  Adds a new timeline with the provided `length`.
+  Adds a new timeline with the provided `length`, and optionally whether the
+    timeline `shouldLoop`.
   
     length: Number
+    shouldLoop: Boolean # TODO: Does it make sense to have this loop parameter?
+                         *       Seems like it should just remain an action.
    */
   AddTimeline: 'AddTimeline',
+
+  /*
+  Set a timeline to loop or not loop.
+  
+    timeline: String
+    shouldLoop: Boolean
+   */
+  SetTimelineLoop: 'SetTimelineLoop',
 
   /*
   Attaches the `entity` with the provided id to the `timeline` with the
@@ -3512,7 +3530,7 @@ module.exports = require('./reducers/base');
 
 
 },{"./reducers/base":92}],92:[function(require,module,exports){
-var _, addChildReducers, entitiesReducer, k, mapAssign, reducer, timelinesReducer, updeep,
+var _, addChildReducers, clamp, entitiesReducer, k, mapAssign, reducer, timelinesReducer, updeep, wrap,
   slice = [].slice;
 
 _ = require('lodash');
@@ -3525,47 +3543,74 @@ mapAssign = require('../util/mapAssign');
 
 addChildReducers = require('../util/addChildReducers');
 
+clamp = require('../util/clamp');
+
+wrap = require('../util/wrap');
+
 timelinesReducer = require('./timelines');
 
 entitiesReducer = require('./entities');
 
 reducer = function(state, action) {
-  var delta, entity, newAttachedTimeline, progress, ref, ref1, timeline, timelines;
+  var dataChanges, delta, entity, entityChanges, entityObj, newAttachedTimeline, performTriggers, progress, ref, ref1, stateWithUpdatedProgress, timeline, timelines;
   if (state == null) {
     state = {};
   }
   switch (action.type) {
     case k.ProgressEntityTimeline:
       ref = action.data, entity = ref.entity, timelines = ref.timelines, delta = ref.delta;
-      return mapAssign(_.cloneDeep(state), 'entities.dict.*.attachedTimelines.*.progress', function(oldProgress, wildcardVals, wildcards) {
-        var entityId, entityObj, newProgress, progressDelta, timeline, timelineIdx, timelineRelation;
-        entityId = wildcards[0], timelineIdx = wildcards[1];
-        entityObj = wildcardVals[0], timelineRelation = wildcardVals[1];
-        if ((entityId === entity) && (_.contains(timelines, timelineRelation.id))) {
-          timeline = state.timelines.dict[timelineRelation.id];
-          progressDelta = delta / timeline.length;
-          newProgress = oldProgress + progressDelta;
-          timeline.triggers.filter(function(trigger) {
-            var ref1;
-            if (_.isNumber(trigger.position)) {
-              return (oldProgress < (ref1 = trigger.position) && ref1 <= newProgress);
-            } else if (_.isFunction(trigger.position)) {
-              return trigger.position(newProgress, oldProgress);
-            } else {
-              console.warn('Invalid trigger position on trigger', trigger);
-              return false;
-            }
-          }).forEach(function(trigger) {
-            return trigger.action(entityId);
-          });
-          timeline.mappings.forEach(function(mapping) {
-            return mapping(newProgress, oldProgress, entityId);
-          });
-          return newProgress;
-        } else {
-          return oldProgress;
-        }
-      });
+      entityObj = state.entities.dict[entity];
+      performTriggers = function(entityId, timelineObj, oldProgress, newProgress) {
+        return timelineObj.triggers.filter(function(trigger) {
+          var ref1;
+          if (_.isNumber(trigger.position)) {
+            return (oldProgress < (ref1 = trigger.position) && ref1 <= newProgress);
+          } else if (_.isFunction(trigger.position)) {
+            return trigger.position(newProgress, oldProgress);
+          } else {
+            console.warn('Invalid trigger position on trigger', trigger);
+            return false;
+          }
+        }).forEach(function(trigger) {
+          return trigger.action(entityId);
+        });
+      };
+      entityChanges = {
+        attachedTimelines: updeep.map(function(attachedTimeline) {
+          var newProgress, oldProgress, progressDelta, timelineObj;
+          if (_.contains(timelines, attachedTimeline.id)) {
+            timelineObj = state.timelines.dict[attachedTimeline.id];
+            progressDelta = delta / timelineObj.length;
+            oldProgress = attachedTimeline.progress;
+            newProgress = timelineObj.shouldLoop ? wrap(0, 1, oldProgress + progressDelta) : clamp(0, 1, oldProgress + progressDelta);
+            performTriggers(entity, timelineObj, oldProgress, newProgress);
+            return updeep.update({
+              progress: newProgress
+            }, attachedTimeline);
+          } else {
+            return attachedTimeline;
+          }
+        })
+      };
+      stateWithUpdatedProgress = updeep.updateIn("entities.dict." + entity, entityChanges, state);
+      dataChanges = {
+        data: (function() {
+          var applyMapping;
+          applyMapping = function(progress) {
+            return function(entityData, mapping) {
+              return _.assign({}, entityData, mapping(progress, entity, entityData));
+            };
+          };
+          return entityObj.attachedTimelines.reduce((function(data, attachedTimeline, idx) {
+            var newProgress, timeline, updatedEntityObj;
+            timeline = state.timelines.dict[attachedTimeline.id];
+            updatedEntityObj = stateWithUpdatedProgress.entities.dict[entity];
+            newProgress = updatedEntityObj.attachedTimelines[idx].progress;
+            return timeline.mappings.reduce(applyMapping(newProgress), data);
+          }), entityObj.data);
+        })()
+      };
+      return updeep.updateIn("entities.dict." + entity, dataChanges, stateWithUpdatedProgress);
     case k.AttachEntityToTimeline:
       ref1 = action.data, entity = ref1.entity, timeline = ref1.timeline, progress = ref1.progress;
       if (progress == null) {
@@ -3589,7 +3634,7 @@ module.exports = addChildReducers(reducer, {
 });
 
 
-},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"./entities":93,"./timelines":94,"lodash":"lodash","updeep":77}],93:[function(require,module,exports){
+},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/clamp":96,"../util/mapAssign":97,"../util/wrap":98,"./entities":93,"./timelines":94,"lodash":"lodash","updeep":77}],93:[function(require,module,exports){
 var _, addChildReducers, k, makeNewEntity, mapAssign, reducer, updeep;
 
 _ = require('lodash');
@@ -3602,15 +3647,18 @@ mapAssign = require('../util/mapAssign');
 
 addChildReducers = require('../util/addChildReducers');
 
-makeNewEntity = function() {
+makeNewEntity = function(initialData) {
+  if (initialData == null) {
+    initialData = {};
+  }
   return {
     attachedTimelines: [],
-    data: {}
+    data: initialData
   };
 };
 
 reducer = function(state, action) {
-  var changes, entity, ref, stateChanges;
+  var changes, entity, initialData, ref, stateChanges;
   if (state == null) {
     state = {
       dict: {},
@@ -3619,12 +3667,14 @@ reducer = function(state, action) {
   }
   switch (action.type) {
     case k.AddEntity:
-      action.data;
+      if (action.data != null) {
+        initialData = action.data.initialData;
+      }
       changes = {
         dict: {},
         _spawnedCount: state._spawnedCount + 1
       };
-      changes.dict["entity-" + state._spawnedCount] = makeNewEntity();
+      changes.dict["entity-" + state._spawnedCount] = makeNewEntity(initialData);
       return updeep(changes, state);
     case k.UpdateEntityData:
       ref = action.data, entity = ref.entity, changes = ref.changes;
@@ -3648,7 +3698,7 @@ reducer = function(state, action) {
 module.exports = reducer;
 
 
-},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"lodash":"lodash","updeep":77}],94:[function(require,module,exports){
+},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":97,"lodash":"lodash","updeep":77}],94:[function(require,module,exports){
 var _, addChildReducers, k, mapAssign, reducer, updeep,
   slice = [].slice;
 
@@ -3663,7 +3713,7 @@ mapAssign = require('../util/mapAssign');
 addChildReducers = require('../util/addChildReducers');
 
 reducer = function(state, action) {
-  var changes, length, mapping, position, ref, ref1, timeline;
+  var changes, length, mapping, position, ref, ref1, ref2, ref3, shouldLoop, timeline;
   if (state == null) {
     state = {
       dict: {},
@@ -3672,19 +3722,23 @@ reducer = function(state, action) {
   }
   switch (action.type) {
     case k.AddTimeline:
-      length = action.data.length;
+      ref = _.defaults(action.data, {
+        length: 1,
+        shouldLoop: false
+      }), length = ref.length, shouldLoop = ref.shouldLoop;
       changes = {
         dict: {},
         _spawnedCount: state._spawnedCount + 1
       };
       changes.dict["timeline-" + state._spawnedCount] = {
         length: length,
+        shouldLoop: shouldLoop,
         triggers: [],
         mappings: []
       };
       return updeep(changes, state);
     case k.AddTrigger:
-      ref = action.data, timeline = ref.timeline, position = ref.position, action = ref.action;
+      ref1 = action.data, timeline = ref1.timeline, position = ref1.position, action = ref1.action;
       return mapAssign(_.cloneDeep(state), "dict." + timeline + ".triggers", function(oldTriggers) {
         return slice.call(oldTriggers).concat([{
             position: position,
@@ -3692,9 +3746,14 @@ reducer = function(state, action) {
           }]);
       });
     case k.AddMapping:
-      ref1 = action.data, timeline = ref1.timeline, mapping = ref1.mapping;
+      ref2 = action.data, timeline = ref2.timeline, mapping = ref2.mapping;
       return mapAssign(_.cloneDeep(state), "dict." + timeline + ".mappings", function(oldMappings) {
         return slice.call(oldMappings).concat([mapping]);
+      });
+    case k.SetTimelineLoop:
+      ref3 = action.data, timeline = ref3.timeline, shouldLoop = ref3.shouldLoop;
+      return mapAssign(_.cloneDeep(state), "dict." + timeline + ".shouldLoop", function() {
+        return shouldLoop;
       });
     default:
       return state;
@@ -3704,7 +3763,7 @@ reducer = function(state, action) {
 module.exports = reducer;
 
 
-},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"lodash":"lodash","updeep":77}],95:[function(require,module,exports){
+},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":97,"lodash":"lodash","updeep":77}],95:[function(require,module,exports){
 var _, addChildReducers;
 
 _ = require('lodash');
@@ -3733,6 +3792,22 @@ module.exports = addChildReducers = function(baseReducer, childReducers) {
 
 
 },{"lodash":"lodash"}],96:[function(require,module,exports){
+var clamp;
+
+module.exports = clamp = function(low, high, n) {
+  var fn;
+  fn = function(n) {
+    return Math.min(high, Math.max(low, n));
+  };
+  if (n != null) {
+    return fn(n);
+  } else {
+    return fn;
+  }
+};
+
+
+},{}],97:[function(require,module,exports){
 
 /*
 Utility for mapping `Object.assign()` over arrays and objects.
@@ -3858,6 +3933,29 @@ module.exports = mapAssign = function(obj, pathString, makeValue) {
   };
   r(pathString.split('.'), obj);
   return obj;
+};
+
+
+},{}],98:[function(require,module,exports){
+var wrap;
+
+module.exports = wrap = function(low, high, n) {
+  var fn;
+  fn = function(n) {
+    var range, t;
+    range = high - low;
+    t = n - low;
+    while (t < 0) {
+      t += range;
+    }
+    t = t % range;
+    return t + low;
+  };
+  if (n != null) {
+    return fn(n);
+  } else {
+    return fn;
+  }
 };
 
 

@@ -3,9 +3,18 @@
   <head>
     <title>honeypower demo</title>
     <script type="text/javascript" src="../dist/vendor.js"></script>
+    <style type="text/css">
+      #controls {
+        display: flex;
+        flex-flow: column nowrap;
+      }
+    </style>
   </head>
   <body>
-    <p>demoo timmee</p>
+    <div id="controls">
+      <button id="add-entity">Add entity</button>
+      <input id="timeline-slider" type="range" value="0"></input>
+    </div>
     <script type="text/javascript" src="dist/demo.js"></script>
   </body>
 </html>

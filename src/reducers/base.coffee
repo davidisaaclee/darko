@@ -1,53 +1,80 @@
 _ = require 'lodash'
 updeep = require 'updeep'
 k = require '../ActionTypes'
+
 mapAssign = require '../util/mapAssign'
 addChildReducers = require '../util/addChildReducers'
 
+clamp = require '../util/clamp'
+wrap = require '../util/wrap'
+
 timelinesReducer = require './timelines'
 entitiesReducer = require './entities'
+
 
 
 reducer = (state = {}, action) ->
   switch action.type
     when k.ProgressEntityTimeline
       {entity, timelines, delta} = action.data
+      entityObj = state.entities.dict[entity]
 
-      mapAssign (_.cloneDeep state),
-        'entities.dict.*.attachedTimelines.*.progress',
-        (oldProgress, wildcardVals, wildcards) ->
-          [entityId, timelineIdx] = wildcards
-          [entityObj, timelineRelation] = wildcardVals
+      performTriggers = (entityId, timelineObj, oldProgress, newProgress) ->
+        timelineObj.triggers
+          .filter (trigger) ->
+            if _.isNumber trigger.position
+              return (oldProgress < trigger.position <= newProgress)
+            else if _.isFunction trigger.position
+              return trigger.position newProgress, oldProgress
+            else
+              console.warn 'Invalid trigger position on trigger', trigger
+              return false
+          .forEach (trigger) ->
+            trigger.action entityId
 
-          # Check if this timeline is one of the ones we want to update.
-          if (entityId == entity) and (_.contains timelines, timelineRelation.id)
-            timeline = state.timelines.dict[timelineRelation.id]
-            progressDelta = delta / timeline.length
-            newProgress = oldProgress + progressDelta
+      entityChanges =
+        attachedTimelines: updeep.map (attachedTimeline) ->
+          if _.contains timelines, attachedTimeline.id
+            timelineObj = state.timelines.dict[attachedTimeline.id]
+            progressDelta = delta / timelineObj.length
+            oldProgress = attachedTimeline.progress
+            newProgress =
+              if timelineObj.shouldLoop
+              then wrap 0, 1, oldProgress + progressDelta
+              else clamp 0, 1, oldProgress + progressDelta
 
             # Trigger any triggers needed triggering.
-            timeline.triggers
-              .filter (trigger) ->
-                if _.isNumber trigger.position
-                  return (oldProgress < trigger.position <= newProgress)
-                else if _.isFunction trigger.position
-                  return trigger.position newProgress, oldProgress
-                else
-                  console.warn 'Invalid trigger position on trigger', trigger
-                  return false
-              .forEach (trigger) ->
-                trigger.action entityId
+            performTriggers entity, timelineObj, oldProgress, newProgress
 
-            # Update all mappings.
-            timeline.mappings
-              .forEach (mapping) ->
-                mapping newProgress, oldProgress, entityId
+            updeep.update {progress: newProgress}, attachedTimeline
 
-            return newProgress
-
-          # Otherwise, just return the existing value.
           else
-            return oldProgress
+            attachedTimeline
+
+      stateWithUpdatedProgress =
+        updeep.updateIn "entities.dict.#{entity}",
+          entityChanges,
+          state
+
+      # Update all mappings.
+      dataChanges =
+        data: do ->
+          applyMapping = (progress) -> (entityData, mapping) ->
+            _.assign {}, entityData,
+              mapping progress, entity, entityData
+
+          # for every attached timeline...
+          entityObj.attachedTimelines.reduce ((data, attachedTimeline, idx) ->
+            # ... apply every mapping, threading the `data` through
+            timeline = state.timelines.dict[attachedTimeline.id]
+            updatedEntityObj = stateWithUpdatedProgress.entities.dict[entity]
+            newProgress = updatedEntityObj.attachedTimelines[idx].progress
+            timeline.mappings.reduce (applyMapping newProgress), data), entityObj.data
+
+      updeep.updateIn "entities.dict.#{entity}",
+        dataChanges,
+        stateWithUpdatedProgress
+
 
     when k.AttachEntityToTimeline
       {entity, timeline, progress} = action.data
