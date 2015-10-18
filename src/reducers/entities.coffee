@@ -16,7 +16,6 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
       changes =
         dict: {}
         _spawnedCount: state._spawnedCount + 1
-      # new entity
       changes.dict["entity-#{state._spawnedCount}"] = makeNewEntity()
 
       updeep changes, state
