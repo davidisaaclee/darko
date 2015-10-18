@@ -1,6 +1,7 @@
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
-hpReducer = require '../src/honeypower'
+# hpReducer = require '../src/honeypower'
+hpReducer = require '../src/reducers/base'
 
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
 assertPure = require './util/assertPure'
@@ -65,6 +66,7 @@ describe 'timeline construction', () ->
           timeline: timelineKey
 
     state = @store.getState()
+
     expect state.entities.dict[entityKey].attachedTimelines.length
       .toBe 1
     expect state.entities.dict[entityKey].attachedTimelines[0].id

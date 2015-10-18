@@ -3469,10 +3469,7 @@ module.exports = {
 
 
 },{}],91:[function(require,module,exports){
-var _, baseStateReducer, combinedReducer, entityReducer, k, mapAssign, redux, timelineReducer, updeep,
-  slice = [].slice;
-
-redux = require('redux');
+var _, baseReducer, k, mapAssign, updeep;
 
 _ = require('lodash');
 
@@ -3481,6 +3478,8 @@ k = require('./ActionTypes');
 updeep = require('updeep');
 
 mapAssign = require('./util/mapAssign');
+
+baseReducer = require('./reducers/base');
 
 
 /*
@@ -3513,7 +3512,28 @@ EntityTimelineRelation ::=
   progress: Float
  */
 
-baseStateReducer = function(state, action) {
+module.exports = baseReducer;
+
+
+},{"./ActionTypes":90,"./reducers/base":92,"./util/mapAssign":96,"lodash":"lodash","updeep":77}],92:[function(require,module,exports){
+var _, addChildReducers, entitiesReducer, k, mapAssign, reducer, timelinesReducer, updeep,
+  slice = [].slice;
+
+_ = require('lodash');
+
+updeep = require('updeep');
+
+k = require('../ActionTypes');
+
+mapAssign = require('../util/mapAssign');
+
+addChildReducers = require('../util/addChildReducers');
+
+timelinesReducer = require('./timelines');
+
+entitiesReducer = require('./entities');
+
+reducer = function(state, action) {
   var delta, entity, newAttachedTimeline, progress, ref, ref1, timeline, timelines;
   if (state == null) {
     state = {};
@@ -3567,7 +3587,67 @@ baseStateReducer = function(state, action) {
   }
 };
 
-timelineReducer = function(state, action) {
+module.exports = addChildReducers(reducer, {
+  'timelines': timelinesReducer,
+  'entities': entitiesReducer
+});
+
+
+},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"./entities":93,"./timelines":94,"lodash":"lodash","updeep":77}],93:[function(require,module,exports){
+var _, addChildReducers, k, mapAssign, reducer, updeep;
+
+_ = require('lodash');
+
+updeep = require('updeep');
+
+k = require('../ActionTypes');
+
+mapAssign = require('../util/mapAssign');
+
+addChildReducers = require('../util/addChildReducers');
+
+reducer = function(state, action) {
+  var changes;
+  if (state == null) {
+    state = {
+      dict: {},
+      _spawnedCount: 0
+    };
+  }
+  switch (action.type) {
+    case k.AddEntity:
+      action.data;
+      changes = {
+        dict: {},
+        _spawnedCount: state._spawnedCount + 1
+      };
+      changes.dict["entity-" + state._spawnedCount] = {
+        attachedTimelines: []
+      };
+      return updeep(changes, state);
+    default:
+      return state;
+  }
+};
+
+module.exports = reducer;
+
+
+},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"lodash":"lodash","updeep":77}],94:[function(require,module,exports){
+var _, addChildReducers, k, mapAssign, reducer, updeep,
+  slice = [].slice;
+
+_ = require('lodash');
+
+updeep = require('updeep');
+
+k = require('../ActionTypes');
+
+mapAssign = require('../util/mapAssign');
+
+addChildReducers = require('../util/addChildReducers');
+
+reducer = function(state, action) {
   var changes, length, mapping, position, ref, ref1, timeline;
   if (state == null) {
     state = {
@@ -3606,56 +3686,38 @@ timelineReducer = function(state, action) {
   }
 };
 
-entityReducer = function(state, action) {
-  var changes;
-  if (state == null) {
-    state = {
-      dict: {},
-      _spawnedCount: 0
+module.exports = reducer;
+
+
+},{"../ActionTypes":90,"../util/addChildReducers":95,"../util/mapAssign":96,"lodash":"lodash","updeep":77}],95:[function(require,module,exports){
+var _, addChildReducers;
+
+_ = require('lodash');
+
+module.exports = addChildReducers = function(baseReducer, childReducers) {
+  if (childReducers == null) {
+    childReducers = {};
+  }
+  return function(state, action) {
+    var reduceOverChildren, result;
+    if (state == null) {
+      state = {};
+    }
+    reduceOverChildren = function(acc, key) {
+      var changedState;
+      changedState = {};
+      changedState[key] = childReducers[key](acc[key], action);
+      return _.assign({}, acc, changedState);
     };
-  }
-  switch (action.type) {
-    case k.AddEntity:
-      action.data;
-      changes = {
-        dict: {},
-        _spawnedCount: state._spawnedCount + 1
-      };
-      changes.dict["entity-" + state._spawnedCount] = {
-        attachedTimelines: []
-      };
-      return updeep(changes, state);
-    default:
-      return state;
-  }
+    result = Object.keys(childReducers).reduce(reduceOverChildren, state);
+    result = baseReducer(result, action);
+    Object.freeze(result);
+    return result;
+  };
 };
 
-combinedReducer = function(state, action) {
-  var childReducers, reduceOverChildren, result;
-  if (state == null) {
-    state = {};
-  }
-  childReducers = {
-    'timelines': timelineReducer,
-    'entities': entityReducer
-  };
-  reduceOverChildren = function(acc, key) {
-    var changedState;
-    changedState = {};
-    changedState[key] = childReducers[key](acc[key], action);
-    return _.assign(acc, changedState);
-  };
-  state = _.assign({}, state);
-  result = Object.keys(childReducers).reduce(reduceOverChildren, state);
-  result = baseStateReducer(result, action);
-  Object.freeze(result);
-  return result;
-};
 
-module.exports = combinedReducer;
-
-
-},{"./ActionTypes":90,"./util/mapAssign":92,"lodash":"lodash","redux":"redux","updeep":77}],92:[function(require,module,exports){
+},{"lodash":"lodash"}],96:[function(require,module,exports){
 
 /*
 Utility for mapping `Object.assign()` over arrays and objects.
