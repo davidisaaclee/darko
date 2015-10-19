@@ -37,7 +37,9 @@ draw = (ctx, entities) ->
       y: p.y * ctx.canvas.height
     else entity
 
-  Object.keys entities.dict
+  entityKeys = Object.keys entities.dict
+
+  entityKeys
     .forEach (key, idx, arr) ->
       pos = getPosition key
       ctx.lineTo pos.x, pos.y
@@ -45,14 +47,13 @@ draw = (ctx, entities) ->
   ctx.strokeStyle = 'white'
   ctx.stroke()
 
-  Object.keys entities.dict
+  entityKeys
     .forEach (key, idx, arr) ->
       pos = getPosition key
       ctx.beginPath()
       ctx.ellipse pos.x, pos.y, 10, 10, 45 * Math.PI/180, 0, 2 * Math.PI
       ctx.closePath()
       ctx.fillStyle = entities.dict[key].data.strokeColor
-      ctx.strokeStyle = null
       ctx.fill()
 
 
@@ -168,9 +169,14 @@ randomColor = () ->
 
 resizeCanvas = () ->
   canvas = document.querySelector 'canvas'
-  canvas.width = canvas.parentNode.clientWidth
-  canvas.height = canvas.parentNode.clientHeight
-  canvas.style.width = canvas.width
-  canvas.style.height = canvas.height
+  # canvas.style.position = 'absolute'
+  # canvas.style.width = 0
+  # canvas.style.height = 0
+  canvas.width =
+    # canvas.style.width =
+    canvas.parentNode.getBoundingClientRect().width
+  canvas.height =
+    # canvas.style.height =
+    canvas.parentNode.getBoundingClientRect().height
 window.addEventListener 'resize', resizeCanvas, false
 do resizeCanvas
