@@ -3,34 +3,52 @@ redux = require 'redux'
 k = require '../../src/ActionTypes'
 reducer = require '../../src/reducers/base'
 
-domState = {}
+{translate3d, offset} = require '../../src/util/cssHelpers'
+
 container = document.getElementById 'container'
+canvas = document.createElement 'canvas'
+canvas.width = container.offsetWidth
+canvas.height = container.offsetHeight
+container.appendChild canvas
 
 
 update = (state, dispatch) ->
-  console.log state
-  {added, removed} = diffKeys domState, state.entities.dict
-  added.forEach (key) ->
-    elt = document.createElement 'div'
-    elt.classList.add 'entity'
-    container.appendChild elt
-    domState[key] = elt
+  # console.log 'update', state
+  # {added, removed} = diffKeys domState, state.entities.dict
+  # added.forEach (key) ->
+  #   elt = document.createElement 'div'
+  #   elt.classList.add 'entity'
+  #   container.appendChild elt
+  #   domState[key] = elt
 
-    dispatch
-      type: k.AttachEntityToTimeline
-      data:
-        entity: key
-        timeline: 'timeline-0'
-  removed.forEach (key) ->
-    domState[key].remove()
-    delete domState[key]
+  (Object.keys state.entities.dict).forEach (key) ->
+    if state.entities.dict[key].attachedTimelines.length is 0
+      dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: key
+          timeline: 'timeline-0'
 
-  Object.keys domState
-    .forEach (key) ->
-      data = state.entities.dict[key].data
-      domState[key].style.left = "#{data.position.x}px"
-      domState[key].style.top = "#{data.position.y}px"
-      domState[key].style.strokeColor = data.strokeColor
+  draw (canvas.getContext '2d'), state.entities
+
+draw = (ctx, entities) ->
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.beginPath()
+
+  getPosition = (entity) ->
+    if entity?
+      p = entities.dict[entity].data.position
+      x: p.x * ctx.canvas.width
+      y: p.y * ctx.canvas.width
+    else entity
+
+  Object.keys entities.dict
+    .forEach (key, idx, arr) ->
+      pos = getPosition key
+      ctx.lineTo pos.x, pos.y
+  ctx.closePath()
+  ctx.stroke()
+
 
 
 diffKeys = (previous, current) ->
@@ -60,8 +78,8 @@ setupTimelines = (dispatch) ->
       mapping: (progress, entityId, entityData) ->
         _.assign {}, entityData,
           position:
-            x: progress * 100
-            y: progress * 100
+            x: 0.5 * ((Math.sin (progress * (75 / Math.PI))) + 1)
+            y: 0.5 * ((Math.sin (progress * (50 / Math.PI))) + 1)
 
   dispatch
     type: k.AddTrigger
@@ -84,20 +102,11 @@ setupInteractions = (dispatch, store) ->
             x: 0
             y: 0
 
-    mostRecentEntityKey =
-      _.last (Object.keys store.getState().entities.dict)
-
-    # dispatch
-    #   type: k.AttachEntityToTimeline
-    #   data:
-    #     entity: mostRecentEntityKey
-    #     timeline: 'timeline-0'
-
   timelineSlider = document.getElementById 'timeline-slider'
   getTimelineValue = () -> timelineSlider.value / 100
   previousSliderValue = getTimelineValue()
-  timelineSlider.addEventListener 'input', (evt) ->
-    Object.keys domState
+  progressTimeline = () ->
+    Object.keys store.getState().entities.dict
       .forEach (entityId) ->
         dispatch
           type: k.ProgressEntityTimeline
@@ -105,8 +114,23 @@ setupInteractions = (dispatch, store) ->
             entity: entityId
             timelines: ['timeline-0']
             delta: getTimelineValue() - previousSliderValue
-
     previousSliderValue = getTimelineValue()
+
+  timelineSlider.addEventListener 'input', progressTimeline
+  timelineSlider.addEventListener 'change', progressTimeline
+
+  timelineValue = timelineSlider.value
+
+  updateTimeline = (t) ->
+    timelineValue = (t / 30) % 100
+    timelineValue = timelineValue % 100
+
+    timelineSlider.value = Math.floor timelineValue
+    do progressTimeline
+
+    window.requestAnimationFrame updateTimeline
+
+  window.requestAnimationFrame updateTimeline
 
 do setup
 
@@ -115,4 +139,12 @@ do setup
 # --- Helpers
 
 randomColor = () ->
-  "rgba(#{Math.random()}, #{Math.random()}, #{Math.random()}, 0.3)"
+  random8bit = () ->
+    Math.floor (Math.random() * 256)
+
+  """
+  rgba(#{random8bit()}, \
+       #{random8bit()}, \
+       #{random8bit()}, \
+       1)
+  """

@@ -39,12 +39,15 @@ describe 'construction', () ->
         type: k.AddEntity
         data:
           initialData: initialData
+          name: 'stephen'
 
     expect (Object.keys @store.getState().entities.dict).length
       .toBe 2
     mostRecentKey = 'entity-1'
     expect @store.getState().entities.dict[mostRecentKey].data
       .toEqual initialData
+    expect @store.getState().entities.dict[mostRecentKey].name
+      .toEqual 'stephen'
 
 
   it 'can add new timelines', () ->
@@ -94,6 +97,23 @@ describe 'construction', () ->
     expect state.entities.dict[entityKey].attachedTimelines.length
       .toBe 0
 
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: entityKey
+          timeline: timelineKey
+
+    state = @store.getState()
+
+    expect state.entities.dict[entityKey].attachedTimelines.length
+      .toBe 1
+    expect state.entities.dict[entityKey].attachedTimelines[0].id
+      .toBe timelineKey
+    expect state.entities.dict[entityKey].attachedTimelines[0].progress
+      .toBe 0
+
+    # doesn't re-add timeline to entity
     assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.AttachEntityToTimeline
@@ -321,6 +341,24 @@ describe 'honeypower', () ->
     expect @store.getState().entities.dict['entity-0'].data
       .toMatchObject
         foo: 1
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.ProgressEntityTimeline
+        data:
+          entity: 'entity-0'
+          timelines: ['timeline-0']
+          delta: -1
+
+    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+      .toBeCloseTo 0.5
+    expect triggerActionSpy.calls.count()
+      .toBe 2
+    expect triggerActionSpy.calls.mostRecent().args
+      .toEqual [0.5, 'entity-0', foo: 1]
+    expect @store.getState().entities.dict['entity-0'].data
+      .toMatchObject
+        foo: 2
 
 
 

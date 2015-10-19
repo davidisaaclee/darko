@@ -3414,85 +3414,14 @@ function wrap(func) {
 
 module.exports = exports['default'];
 },{"./freeze":74,"./util/curry":84}],90:[function(require,module,exports){
-module.exports = {
+var actions;
 
-  /*
-  Progress the `timelines` on `entity` by `delta`.
-  
-    timelines: [String]
-    entity: String
-    delta: Number
-   */
-  ProgressEntityTimeline: 'ProgressEntityTimeline',
+actions = ['ProgressEntityTimeline', 'AddTrigger', 'AddMapping', 'AddEntity', 'AddTimeline', 'SetTimelineLoop', 'AttachEntityToTimeline', 'UpdateEntityData'];
 
-  /*
-  Adds a new trigger to `timeline` with specified `position` and `action`. The
-    `action` function expects the id of the invoking entity as an argument.
-  
-    timeline: String
-    position: Float
-    action: Function
-   */
-  AddTrigger: 'AddTrigger',
-
-  /*
-  Adds a new `mapping` function to a `timeline`. A `mapping` function modifies
-    an entity's `data` field, based on an attached `timeline`'s progress.
-  The `mapping` function expects four arguments:
-    progress: Float - the timeline's updated progress
-    entity: the id of the invoking entity
-    data: the current `data` field of the invoking entity
-  The `mapping` function should return an object of changes to the existing
-    `data` field.
-  
-    timeline: String
-    mapping: Function
-   */
-  AddMapping: 'AddMapping',
-
-  /*
-  Adds a new entity, with an optional initial `data` field.
-  
-    initialData: Object
-   */
-  AddEntity: 'AddEntity',
-
-  /*
-  Adds a new timeline with the provided `length`, and optionally whether the
-    timeline `shouldLoop`.
-  
-    length: Number
-    shouldLoop: Boolean # TODO: Does it make sense to have this loop parameter?
-                         *       Seems like it should just remain an action.
-   */
-  AddTimeline: 'AddTimeline',
-
-  /*
-  Set a timeline to loop or not loop.
-  
-    timeline: String
-    shouldLoop: Boolean
-   */
-  SetTimelineLoop: 'SetTimelineLoop',
-
-  /*
-  Attaches the `entity` with the provided id to the `timeline` with the
-    provided timeline id.
-  
-    entity: String
-    timeline: String
-   */
-  AttachEntityToTimeline: 'AttachEntityToTimeline',
-
-  /*
-  Updates `entity`'s `data` property with `changes` (which are applied to the
-    existing `data` via `updeep`).
-  
-    entity: String
-    changes: Object
-   */
-  UpdateEntityData: 'UpdateEntityData'
-};
+module.exports = actions.reduce((function(acc, actionType) {
+  acc[actionType] = actionType;
+  return acc;
+}), {});
 
 
 },{}],91:[function(require,module,exports){
@@ -3558,7 +3487,7 @@ timelinesReducer = require('./timelines');
 entitiesReducer = require('./entities');
 
 reducer = function(state, action) {
-  var applyTrigger, dataChanges, delta, entity, entityChanges, entityObj, newAttachedTimeline, newTimelines, oldTimelines, progress, reduceTriggers, ref, ref1, timeline, timelines, triggerChanges, updatedState;
+  var applyTrigger, dataChanges, delta, entity, entityChanges, entityObj, newTimelines, oldTimelines, progress, reduceTriggers, ref, ref1, timeline, timelines, triggerChanges, updatedState;
   if (state == null) {
     state = {};
   }
@@ -3597,10 +3526,10 @@ reducer = function(state, action) {
         return function(entityData, trigger) {
           var shouldPerformTrigger;
           shouldPerformTrigger = (function() {
-            var ref1;
+            var ref1, ref2;
             switch (false) {
               case !_.isNumber(trigger.position):
-                return (oldProgress < (ref1 = trigger.position) && ref1 <= newProgress);
+                return ((oldProgress < (ref1 = trigger.position) && ref1 <= newProgress)) || ((newProgress < (ref2 = trigger.position) && ref2 <= oldProgress));
               case !_.isFunction(trigger.position):
                 return trigger.position(newProgress, oldProgress);
               default:
@@ -3648,15 +3577,24 @@ reducer = function(state, action) {
       return updeep.updateIn("entities.dict." + entity, dataChanges, updatedState);
     case k.AttachEntityToTimeline:
       ref1 = action.data, entity = ref1.entity, timeline = ref1.timeline, progress = ref1.progress;
-      if (progress == null) {
-        progress = 0;
-      }
-      newAttachedTimeline = {
-        id: timeline,
-        progress: progress
-      };
       return mapAssign(_.cloneDeep(state), "entities.dict." + entity + ".attachedTimelines", function(oldAttachedTimelines) {
-        return slice.call(oldAttachedTimelines).concat([newAttachedTimeline]);
+        var checkTimeline, isTimelineAlreadyAttached, newAttachedTimeline;
+        checkTimeline = function(tmln) {
+          return tmln.id !== timeline;
+        };
+        isTimelineAlreadyAttached = _.all(oldAttachedTimelines, checkTimeline);
+        if (isTimelineAlreadyAttached) {
+          if (progress == null) {
+            progress = 0;
+          }
+          newAttachedTimeline = {
+            id: timeline,
+            progress: progress
+          };
+          return slice.call(oldAttachedTimelines).concat([newAttachedTimeline]);
+        } else {
+          return oldAttachedTimelines;
+        }
       });
     default:
       return state;
@@ -3693,7 +3631,7 @@ makeNewEntity = function(initialData) {
 };
 
 reducer = function(state, action) {
-  var changes, entity, initialData, ref, stateChanges;
+  var changes, entity, id, initialData, name, ref, ref1, stateChanges;
   if (state == null) {
     state = {
       dict: {},
@@ -3703,16 +3641,20 @@ reducer = function(state, action) {
   switch (action.type) {
     case k.AddEntity:
       if (action.data != null) {
-        initialData = action.data.initialData;
+        ref = action.data, name = ref.name, initialData = ref.initialData;
       }
+      id = "entity-" + state._spawnedCount;
       changes = {
         dict: {},
         _spawnedCount: state._spawnedCount + 1
       };
-      changes.dict["entity-" + state._spawnedCount] = makeNewEntity(initialData);
+      changes.dict[id] = makeNewEntity(initialData);
+      if (name != null) {
+        changes.dict[id].name = name;
+      }
       return updeep(changes, state);
     case k.UpdateEntityData:
-      ref = action.data, entity = ref.entity, changes = ref.changes;
+      ref1 = action.data, entity = ref1.entity, changes = ref1.changes;
       if (state.dict[entity] != null) {
         stateChanges = {
           dict: {}

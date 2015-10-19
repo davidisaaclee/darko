@@ -13,12 +13,17 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
     when k.AddEntity
       # TODO: cleaner way to enable optional data
       if action.data?
-        {initialData} = action.data
+        {name, initialData} = action.data
+
+      id = "entity-#{state._spawnedCount}"
 
       changes =
         dict: {}
         _spawnedCount: state._spawnedCount + 1
-      changes.dict["entity-#{state._spawnedCount}"] = makeNewEntity initialData
+      changes.dict[id] = makeNewEntity initialData
+
+      if name?
+        changes.dict[id].name = name
 
       updeep changes, state
 
@@ -26,8 +31,7 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
       {entity, changes} = action.data
 
       if state.dict[entity]?
-        stateChanges =
-          dict: {}
+        stateChanges = dict: {}
         stateChanges.dict[entity] =
           data: changes
 

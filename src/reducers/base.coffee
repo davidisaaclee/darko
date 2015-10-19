@@ -60,7 +60,8 @@ reducer = (state = {}, action) ->
       applyTrigger = (newProgress, oldProgress) -> (entityData, trigger) ->
         shouldPerformTrigger = switch
           when _.isNumber trigger.position
-            (oldProgress < trigger.position <= newProgress)
+            (oldProgress < trigger.position <= newProgress) or
+            (newProgress < trigger.position <= oldProgress)
           when _.isFunction trigger.position
             trigger.position newProgress, oldProgress
           else
@@ -112,16 +113,20 @@ reducer = (state = {}, action) ->
 
     when k.AttachEntityToTimeline
       {entity, timeline, progress} = action.data
-      if not progress?
-        progress = 0
-
-      newAttachedTimeline =
-        id: timeline
-        progress: progress
-
       mapAssign (_.cloneDeep state),
         "entities.dict.#{entity}.attachedTimelines",
-        (oldAttachedTimelines) -> [oldAttachedTimelines..., newAttachedTimeline]
+        (oldAttachedTimelines) ->
+          checkTimeline = (tmln) -> tmln.id isnt timeline
+          isTimelineAlreadyAttached = _.all oldAttachedTimelines, checkTimeline
+          if isTimelineAlreadyAttached
+            if not progress?
+              progress = 0
+            newAttachedTimeline =
+              id: timeline
+              progress: progress
+            [oldAttachedTimelines..., newAttachedTimeline]
+          else
+            oldAttachedTimelines
 
 
 
