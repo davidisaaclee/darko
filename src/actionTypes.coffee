@@ -1,11 +1,4 @@
 actions = [
-  # Progress the `timelines` on `entity` by `delta`.
-  #
-  #   timelines: [String]
-  #   entity: String
-  #   delta: Number
-  'ProgressEntityTimeline'
-
   # Adds a new trigger to `timeline` with specified `position` and `action`. The
   #   `action` function expects the id of the invoking entity as an argument.
   #
@@ -61,6 +54,19 @@ actions = [
   #   entity: String
   #   changes: Object
   'UpdateEntityData'
+
+  # Progress the `timeline` on `entity` by `delta`.
+  #
+  #   timeline: String
+  #   entity: String
+  #   delta: Number
+  'ProgressEntityTimeline'
+
+  # Progress the specified `timeline` by `delta` on all attached entities.
+  #
+  #   timeline: String
+  #   delta: Number
+  'ProgressTimeline'
 ]
 
 module.exports = actions.reduce ((acc, actionType) ->
