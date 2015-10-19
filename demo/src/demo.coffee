@@ -5,6 +5,8 @@ reducer = require '../../src/reducers/base'
 
 {translate3d, offset} = require '../../src/util/cssHelpers'
 
+wrap = require '../../src/util/wrap'
+
 container = document.getElementById 'container'
 canvas = document.createElement 'canvas'
 canvas.width = container.offsetWidth
@@ -47,6 +49,7 @@ draw = (ctx, entities) ->
       pos = getPosition key
       ctx.lineTo pos.x, pos.y
   ctx.closePath()
+  ctx.strokeStyle = 'white'
   ctx.stroke()
 
 
@@ -104,8 +107,10 @@ setupInteractions = (dispatch, store) ->
 
   timelineSlider = document.getElementById 'timeline-slider'
   getTimelineValue = () -> timelineSlider.value / 100
+
   previousSliderValue = getTimelineValue()
   progressTimeline = () ->
+    v = getTimelineValue()
     Object.keys store.getState().entities.dict
       .forEach (entityId) ->
         dispatch
@@ -113,24 +118,33 @@ setupInteractions = (dispatch, store) ->
           data:
             entity: entityId
             timelines: ['timeline-0']
-            delta: getTimelineValue() - previousSliderValue
-    previousSliderValue = getTimelineValue()
+            delta: v - previousSliderValue
+    previousSliderValue = v
 
   timelineSlider.addEventListener 'input', progressTimeline
   timelineSlider.addEventListener 'change', progressTimeline
 
-  timelineValue = timelineSlider.value
-
+  isAnimating = true
+  animationOffset = 0
+  time = 0
   updateTimeline = (t) ->
-    timelineValue = (t / 30) % 100
-    timelineValue = timelineValue % 100
-
-    timelineSlider.value = Math.floor timelineValue
-    do progressTimeline
-
+    time = t
     window.requestAnimationFrame updateTimeline
+    if isAnimating
+      timelineSlider.value = wrap 0, 100, Math.floor ((animationOffset + t) / 30)
+      do progressTimeline
 
-  window.requestAnimationFrame updateTimeline
+
+  timelineSlider.addEventListener 'mousedown', () ->
+    isAnimating = false
+
+  document.addEventListener 'mouseup', () ->
+    if not isAnimating
+      isAnimating = true
+      animationOffset = timelineSlider.value * 30 - time
+      do updateTimeline
+
+  do updateTimeline
 
 do setup
 
