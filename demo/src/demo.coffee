@@ -15,14 +15,6 @@ container.appendChild canvas
 
 
 update = (state, dispatch) ->
-  # console.log 'update', state
-  # {added, removed} = diffKeys domState, state.entities.dict
-  # added.forEach (key) ->
-  #   elt = document.createElement 'div'
-  #   elt.classList.add 'entity'
-  #   container.appendChild elt
-  #   domState[key] = elt
-
   (Object.keys state.entities.dict).forEach (key) ->
     if state.entities.dict[key].attachedTimelines.length is 0
       dispatch
@@ -33,6 +25,7 @@ update = (state, dispatch) ->
 
   draw (canvas.getContext '2d'), state.entities
 
+
 draw = (ctx, entities) ->
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.beginPath()
@@ -41,16 +34,27 @@ draw = (ctx, entities) ->
     if entity?
       p = entities.dict[entity].data.position
       x: p.x * ctx.canvas.width
-      y: p.y * ctx.canvas.width
+      y: p.y * ctx.canvas.height
     else entity
 
-  Object.keys entities.dict
+  entityKeys = Object.keys entities.dict
+
+  entityKeys
     .forEach (key, idx, arr) ->
       pos = getPosition key
       ctx.lineTo pos.x, pos.y
   ctx.closePath()
   ctx.strokeStyle = 'white'
   ctx.stroke()
+
+  entityKeys
+    .forEach (key, idx, arr) ->
+      pos = getPosition key
+      ctx.beginPath()
+      ctx.ellipse pos.x, pos.y, 10, 10, 45 * Math.PI/180, 0, 2 * Math.PI
+      ctx.closePath()
+      ctx.fillStyle = entities.dict[key].data.strokeColor
+      ctx.fill()
 
 
 
@@ -162,3 +166,17 @@ randomColor = () ->
        #{random8bit()}, \
        1)
   """
+
+resizeCanvas = () ->
+  canvas = document.querySelector 'canvas'
+  # canvas.style.position = 'absolute'
+  # canvas.style.width = 0
+  # canvas.style.height = 0
+  canvas.width =
+    # canvas.style.width =
+    canvas.parentNode.getBoundingClientRect().width
+  canvas.height =
+    # canvas.style.height =
+    canvas.parentNode.getBoundingClientRect().height
+window.addEventListener 'resize', resizeCanvas, false
+do resizeCanvas

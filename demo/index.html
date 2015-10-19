@@ -65,11 +65,18 @@
 
       #container {
         box-sizing: border-box;
-        margin: 10px;
-        flex-grow: 1;
-        align-self: stretch;
-        background-color: green;
+        margin: 50px;
+        /*flex-grow: 1;*/
 
+        /*overflow: hidden;*/
+
+        max-width: 80%;
+        max-height: 1000px;
+        height: 100%;
+        width: 100%;
+
+        /*align-self: stretch;*/
+        background-color: green;
 
         background: linear-gradient(312deg, #8594e4, #ca4d4d, #caae7e, #7dc17a, #20398a);
         background-size: 1000% 1000%;
@@ -77,6 +84,10 @@
         -webkit-animation: AnimationName 90s ease infinite;
         -moz-animation: AnimationName 90s ease infinite;
         animation: AnimationName 90s ease infinite;
+      }
+
+      canvas {
+        position: absolute;
       }
     </style>
   </head>
