@@ -3427,27 +3427,65 @@ module.exports = actions.reduce((function(acc, actionType) {
 },{}],91:[function(require,module,exports){
 
 /*
-State ::=
+ * The main state of an interactive scene.
+Scene ::=
   timelines:
+     * Dictionary mapping unique timeline ID to a timeline model.
+     * These timeline models are referenced by entities; so they only hold
+     *   information applicable to any attached entity - such as triggers,
+     *   mappings, and timeline length.
     dict: { id -> Timeline }
-    _spawnedCount: Number
-  entities:
-    dict: { id -> Entity }
+
+     * Internal; number of times timelines have been spawned.
+     * Used for assigning unique timeline IDs.
     _spawnedCount: Number
 
+  entities:
+     * Dictionary mapping unique entity ID to an entity model.
+    dict: { id -> Entity }
+
+     * Internal; number of times entities have been spawned.
+     * Used for assigning unique entity IDs.
+    _spawnedCount: Number
+
+
+ * Represents a timeline model.
+ * These timeline models are referenced by entities; so they only hold
+ *   information applicable to any attached entity - such as triggers,
+ *   mappings, and timeline length.
 Timeline ::=
    * Progress along the timeline is scaled by its `length`.
    * If timeline A has 2x the length of timeline B, it should take twice as long
    *   to progress along A as to progress along B.
   length: Number
+
+   * A list of this timeline's triggers. The order of this list designates the
+   *   order in which the triggers at the same position will be called.
   triggers: [Trigger]
+
+   * A list of this timeline's mappings. The order of this list designates the
+   *   order in which the mappings are invoked.
+   * These mappings are called on an `Entity` every time the `Entity` progresses
+   *   along the timeline.
   mappings: [Mapping]
 
+
+ * An object which can be attached to timelines.
+ * Holds an arbitrary `data` object, and a list of timelines which modify the
+ *   `data` object.
 Entity ::=
+   * A list of timelines which this `Entity` is attached to. The order of this
+   *   list designates the order in which triggers / mappings are invoked.
   attachedTimelines: [EntityTimelineRelation]
+
+   * An application-specific container for arbitrary data. Triggers and mappings
+   *   serve to modify this object.
   data: Object
 
+
+ * A one-shot modification of an `Entity`'s `data` field.
 Trigger ::=
+   * Describes when to invoke this `Trigger`.
    * When `position` is a float, the trigger's `action` is performed when
    *   `progress` crosses that float, and the resulting data is merged into the
    *   invoking entity's `data` field.
@@ -3455,16 +3493,26 @@ Trigger ::=
    *   providing as arguments `newProgress, oldProgress`. If the function returns
    *   `true`, the trigger's `action` is performed.
   position: Float | Function
+
+   * A function describing a modification to an attached `Entity`'s `data` field,
+   *   called once when `position` is "satisfied".
   action: Mapping
 
+
+ * A function for mapping a `Timeline`'s progress to an entity's `data` field.
 Mapping ::= (progress: Float, entityId: String, entityData: Object) -> Object
-  progress - The timeline's most recent progress value.
+  progress - The `Timeline`'s most recent progress value.
   entityId - The invoking entity's ID.
   entityData - The invoking entity's most recent `data` field.
-  returns: An object of changes for the invoking entity's `data` field.
+  returns: An object of sparse changes for the invoking entity's `data` field.
 
+
+ * Describes an attachment of an `Entity` to a `Timeline`.
 EntityTimelineRelation ::=
-  id: String
+   * The attached `Timeline`'s unique ID.
+  timeline: String
+
+   * The progress along the attached `Timeline`: a number between 0 and 1.
   progress: Float
  */
 module.exports = require('./reducers/base');
@@ -3505,9 +3553,9 @@ batchProgress = function(state, progressInfo) {
     var entityId, entityObj, newProgress, progressDelta, ref, shouldUpdate, timelineIdx, timelineModel, timelineObj;
     entityObj = arg[0], timelineObj = arg[1];
     entityId = arg1[0], timelineIdx = arg1[1];
-    timelineModel = state.timelines.dict[timelineObj.id];
-    shouldUpdate = ((ref = progressInfo[timelineObj.id]) != null ? ref.entities : void 0) != null ? _.contains(entityId, progressInfo[timelineObj.id].entities) : progressInfo[timelineObj.id] != null;
-    progressDelta = shouldUpdate ? progressInfo[timelineObj.id].delta / timelineModel.length : 0;
+    timelineModel = state.timelines.dict[timelineObj.timeline];
+    shouldUpdate = ((ref = progressInfo[timelineObj.timeline]) != null ? ref.entities : void 0) != null ? _.contains(entityId, progressInfo[timelineObj.timeline].entities) : progressInfo[timelineObj.timeline] != null;
+    progressDelta = shouldUpdate ? progressInfo[timelineObj.timeline].delta / timelineModel.length : 0;
     newProgress = timelineModel.shouldLoop ? wrap(0, 1, oldProgress + progressDelta) : clamp(0, 1, oldProgress + progressDelta);
     return newProgress;
   });
@@ -3541,7 +3589,7 @@ batchProgress = function(state, progressInfo) {
     };
     reduceTriggers = function(data, __, i) {
       var applyThisTrigger, newProgress, oldProgress, timelineObj;
-      timelineObj = state_.timelines.dict[newTimelines[i].id];
+      timelineObj = state_.timelines.dict[newTimelines[i].timeline];
       newProgress = newTimelines[i].progress;
       oldProgress = oldTimelines[i].progress;
       applyThisTrigger = applyTrigger(newProgress, oldProgress);
@@ -3560,7 +3608,7 @@ batchProgress = function(state, progressInfo) {
     };
     return r = entityObj.attachedTimelines.reduce((function(data, attachedTimeline, idx) {
       var newProgress, timeline, updatedEntityObj;
-      timeline = state__.timelines.dict[attachedTimeline.id];
+      timeline = state__.timelines.dict[attachedTimeline.timeline];
       updatedEntityObj = state__.entities.dict[entityId];
       newProgress = updatedEntityObj.attachedTimelines[idx].progress;
       return timeline.mappings.reduce(applyMapping(newProgress), data);
@@ -3594,7 +3642,7 @@ reducer = function(state, action) {
       return mapAssign(_.cloneDeep(state), "entities.dict." + entity + ".attachedTimelines", function(oldAttachedTimelines) {
         var checkTimeline, isTimelineAlreadyAttached, newAttachedTimeline;
         checkTimeline = function(tmln) {
-          return tmln.id !== timeline;
+          return tmln.timeline !== timeline;
         };
         isTimelineAlreadyAttached = _.all(oldAttachedTimelines, checkTimeline);
         if (isTimelineAlreadyAttached) {
@@ -3602,7 +3650,7 @@ reducer = function(state, action) {
             progress = 0;
           }
           newAttachedTimeline = {
-            id: timeline,
+            timeline: timeline,
             progress: progress
           };
           return slice.call(oldAttachedTimelines).concat([newAttachedTimeline]);

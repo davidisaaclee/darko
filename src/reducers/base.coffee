@@ -20,16 +20,16 @@ batchProgress = (state, progressInfo) ->
   state_ = mapAssign (_.cloneDeep state),
     'entities.dict.*.attachedTimelines.*.progress',
     (oldProgress, [entityObj, timelineObj], [entityId, timelineIdx]) ->
-      timelineModel = state.timelines.dict[timelineObj.id]
+      timelineModel = state.timelines.dict[timelineObj.timeline]
 
       shouldUpdate =
-        if progressInfo[timelineObj.id]?.entities?
-        then _.contains entityId, progressInfo[timelineObj.id].entities
-        else progressInfo[timelineObj.id]?
+        if progressInfo[timelineObj.timeline]?.entities?
+        then _.contains entityId, progressInfo[timelineObj.timeline].entities
+        else progressInfo[timelineObj.timeline]?
 
       progressDelta =
         if shouldUpdate
-        then progressInfo[timelineObj.id].delta / timelineModel.length
+        then progressInfo[timelineObj.timeline].delta / timelineModel.length
         else 0
 
       newProgress =
@@ -61,7 +61,7 @@ batchProgress = (state, progressInfo) ->
         else entityData
 
       reduceTriggers = (data, __, i) ->
-        timelineObj = state_.timelines.dict[newTimelines[i].id]
+        timelineObj = state_.timelines.dict[newTimelines[i].timeline]
         newProgress = newTimelines[i].progress
         oldProgress = oldTimelines[i].progress
 
@@ -81,7 +81,7 @@ batchProgress = (state, progressInfo) ->
       # for every attached timeline...
       r = entityObj.attachedTimelines.reduce ((data, attachedTimeline, idx) ->
         # ... apply every mapping, threading the `data` through
-        timeline = state__.timelines.dict[attachedTimeline.id]
+        timeline = state__.timelines.dict[attachedTimeline.timeline]
         updatedEntityObj = state__.entities.dict[entityId]
         newProgress = updatedEntityObj.attachedTimelines[idx].progress
         timeline.mappings.reduce (applyMapping newProgress), data), entityObj.data
@@ -116,13 +116,13 @@ reducer = (state = {}, action) ->
       mapAssign (_.cloneDeep state),
         "entities.dict.#{entity}.attachedTimelines",
         (oldAttachedTimelines) ->
-          checkTimeline = (tmln) -> tmln.id isnt timeline
+          checkTimeline = (tmln) -> tmln.timeline isnt timeline
           isTimelineAlreadyAttached = _.all oldAttachedTimelines, checkTimeline
           if isTimelineAlreadyAttached
             if not progress?
               progress = 0
             newAttachedTimeline =
-              id: timeline
+              timeline: timeline
               progress: progress
             [oldAttachedTimelines..., newAttachedTimeline]
           else

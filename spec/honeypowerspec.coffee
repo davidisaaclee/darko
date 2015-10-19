@@ -1,3 +1,10 @@
+###
+Things which need to be tested:
+- order of triggers at different positions which have been triggered on the same
+  dispatch
+
+###
+
 _ = require 'lodash'
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
@@ -111,7 +118,7 @@ describe 'construction', () ->
 
     expect state.entities.dict[entityKey].attachedTimelines.length
       .toBe 1
-    expect state.entities.dict[entityKey].attachedTimelines[0].id
+    expect state.entities.dict[entityKey].attachedTimelines[0].timeline
       .toBe timelineKey
     expect state.entities.dict[entityKey].attachedTimelines[0].progress
       .toBe 0
@@ -128,7 +135,7 @@ describe 'construction', () ->
 
     expect state.entities.dict[entityKey].attachedTimelines.length
       .toBe 1
-    expect state.entities.dict[entityKey].attachedTimelines[0].id
+    expect state.entities.dict[entityKey].attachedTimelines[0].timeline
       .toBe timelineKey
     expect state.entities.dict[entityKey].attachedTimelines[0].progress
       .toBe 0
@@ -164,7 +171,7 @@ describe 'honeypower', () ->
   it 'can progress timelines by entity', () ->
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
       .toBe 0
-    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].id
+    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].timeline
     expect @store.getState().timelines.dict[timelineId].shouldLoop
       .toBe false
 
@@ -218,7 +225,7 @@ describe 'honeypower', () ->
   it 'can loop timelines', () ->
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
       .toBe 0
-    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].id
+    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].timeline
     expect @store.getState().timelines.dict[timelineId].shouldLoop
       .toBe false
 
@@ -573,7 +580,7 @@ describe 'honeypower', () ->
     expect @store.getState().entities.dict[bobId].attachedTimelines[0]
       .toMatchObject
         progress: 0
-        id: 'timeline-0'
+        timeline: 'timeline-0'
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
@@ -585,7 +592,7 @@ describe 'honeypower', () ->
     expect @store.getState().entities.dict[bobId].attachedTimelines[0]
       .toMatchObject
         progress: 0.5
-        id: 'timeline-0'
+        timeline: 'timeline-0'
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
@@ -598,7 +605,7 @@ describe 'honeypower', () ->
     expect @store.getState().entities.dict[sueId].attachedTimelines[0]
       .toMatchObject
         progress: 0
-        id: 'timeline-0'
+        timeline: 'timeline-0'
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
@@ -611,8 +618,8 @@ describe 'honeypower', () ->
     expect @store.getState().entities.dict[bobId].attachedTimelines[0]
       .toMatchObject
         progress: 1
-        id: 'timeline-0'
+        timeline: 'timeline-0'
     expect @store.getState().entities.dict[sueId].attachedTimelines[0]
       .toMatchObject
         progress: 0.5
-        id: 'timeline-0'
+        timeline: 'timeline-0'
