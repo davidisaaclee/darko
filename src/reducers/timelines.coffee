@@ -7,7 +7,9 @@ addChildReducers = require '../util/addChildReducers'
 reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
   switch action.type
     when k.AddTimeline
-      {length} = action.data
+      {length, shouldLoop} = _.defaults action.data,
+        length: 1
+        shouldLoop: false
 
       changes =
         dict: {}
@@ -15,10 +17,12 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
       # new entity
       changes.dict["timeline-#{state._spawnedCount}"] =
         length: length
+        shouldLoop: shouldLoop
         triggers: []
         mappings: []
 
       updeep changes, state
+
 
     when k.AddTrigger
       {timeline, position, action} = action.data
@@ -26,11 +30,19 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
         "dict.#{timeline}.triggers",
         (oldTriggers) -> [oldTriggers..., {position: position, action: action}]
 
+
     when k.AddMapping
       {timeline, mapping} = action.data
       mapAssign (_.cloneDeep state),
         "dict.#{timeline}.mappings",
         (oldMappings) -> [oldMappings..., mapping]
+
+
+    when k.SetTimelineLoop
+      {timeline, shouldLoop} = action.data
+      mapAssign (_.cloneDeep state),
+        "dict.#{timeline}.shouldLoop",
+        () -> shouldLoop
 
     else state
 
