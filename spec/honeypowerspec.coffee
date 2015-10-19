@@ -1,3 +1,10 @@
+###
+Things which need to be tested:
+- order of triggers at different positions which have been triggered on the same
+  dispatch
+
+###
+
 _ = require 'lodash'
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
@@ -6,6 +13,9 @@ hpReducer = require '../src/reducers/base'
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
 assertPure = require './util/assertPure'
 
+getEntityByName = (entityDict, name) ->
+  _.find (_.keys entityDict), (id) ->
+    entityDict[id].name is name
 
 describe 'construction', () ->
   beforeEach () ->
@@ -108,7 +118,7 @@ describe 'construction', () ->
 
     expect state.entities.dict[entityKey].attachedTimelines.length
       .toBe 1
-    expect state.entities.dict[entityKey].attachedTimelines[0].id
+    expect state.entities.dict[entityKey].attachedTimelines[0].timeline
       .toBe timelineKey
     expect state.entities.dict[entityKey].attachedTimelines[0].progress
       .toBe 0
@@ -125,7 +135,7 @@ describe 'construction', () ->
 
     expect state.entities.dict[entityKey].attachedTimelines.length
       .toBe 1
-    expect state.entities.dict[entityKey].attachedTimelines[0].id
+    expect state.entities.dict[entityKey].attachedTimelines[0].timeline
       .toBe timelineKey
     expect state.entities.dict[entityKey].attachedTimelines[0].progress
       .toBe 0
@@ -158,10 +168,10 @@ describe 'honeypower', () ->
         timeline: (Object.keys @store.getState().timelines.dict)[0]
 
 
-  it 'can progress timelines', () ->
+  it 'can progress timelines by entity', () ->
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
       .toBe 0
-    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].id
+    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].timeline
     expect @store.getState().timelines.dict[timelineId].shouldLoop
       .toBe false
 
@@ -170,7 +180,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -181,7 +191,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -192,7 +202,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -203,7 +213,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: -3
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -215,7 +225,7 @@ describe 'honeypower', () ->
   it 'can loop timelines', () ->
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
       .toBe 0
-    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].id
+    timelineId = @store.getState().entities.dict['entity-0'].attachedTimelines[0].timeline
     expect @store.getState().timelines.dict[timelineId].shouldLoop
       .toBe false
 
@@ -234,7 +244,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -245,7 +255,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -256,7 +266,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: -3
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -316,7 +326,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -329,7 +339,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -347,7 +357,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: -1
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -381,7 +391,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 0.2
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -394,7 +404,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 0.2
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -409,7 +419,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 0.2
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -422,7 +432,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 0.2
 
     expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
@@ -460,7 +470,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: delta
 
     expectedProgress =
@@ -478,7 +488,7 @@ describe 'honeypower', () ->
         type: k.ProgressEntityTimeline
         data:
           entity: 'entity-0'
-          timelines: ['timeline-0']
+          timeline: 'timeline-0'
           delta: 1
 
     expect @store.getState().entities.dict['entity-0'].data.progress
@@ -500,44 +510,116 @@ describe 'honeypower', () ->
     expect @store.getState().entities.dict['entity-0'].data.color
       .toBe 'red'
 
-    # assertPure (() => @store.getState()), () =>
-    #   @store.dispatch
-    #     type: k.UpdateEntityData
-    #     data:
-    #       entity: 'entity-0'
-    #       changes:
-    #         color: 'blue'
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            color: 'blue'
 
-    # expect @store.getState().entities.dict['entity-0'].data.color
-    #   .toBe 'blue'
+    expect @store.getState().entities.dict['entity-0'].data.color
+      .toBe 'blue'
 
-    # assertPure (() => @store.getState()), () =>
-    #   @store.dispatch
-    #     type: k.UpdateEntityData
-    #     data:
-    #       entity: 'entity-0'
-    #       changes:
-    #         position:
-    #           x: -1
-    #           y: 1
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            position:
+              x: -1
+              y: 1
 
-    # expect @store.getState().entities.dict['entity-0'].data.position
-    #   .toEqual x: -1, y: 1
-    # expect @store.getState().entities.dict['entity-0'].data.color
-    #   .toBe 'blue'
+    expect @store.getState().entities.dict['entity-0'].data.position
+      .toEqual x: -1, y: 1
+    expect @store.getState().entities.dict['entity-0'].data.color
+      .toBe 'blue'
 
-    # assertPure (() => @store.getState()), () =>
-    #   @store.dispatch
-    #     type: k.UpdateEntityData
-    #     data:
-    #       entity: 'entity-0'
-    #       changes:
-    #         color: 'green'
-    #         position:
-    #           x: 1
-    #           y: -1
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            color: 'green'
+            position:
+              x: 1
+              y: -1
 
-    # expect @store.getState().entities.dict['entity-0'].data.position
-    #   .toEqual x: 1, y: -1
-    # expect @store.getState().entities.dict['entity-0'].data.color
-    #   .toBe 'green'
+    expect @store.getState().entities.dict['entity-0'].data.position
+      .toEqual x: 1, y: -1
+    expect @store.getState().entities.dict['entity-0'].data.color
+      .toBe 'green'
+
+
+  it 'can progress timelines by timelines', () ->
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AddEntity
+        data:
+          name: 'bob'
+
+      @store.dispatch
+        type: k.AddEntity
+        data:
+          name: 'sue'
+
+    bobId = getEntityByName @store.getState().entities.dict, 'bob'
+    sueId = getEntityByName @store.getState().entities.dict, 'sue'
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: bobId
+          timeline: 'timeline-0'
+
+    expect @store.getState().entities.dict[bobId].attachedTimelines.length
+      .toBe 1
+    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
+      .toMatchObject
+        progress: 0
+        timeline: 'timeline-0'
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.ProgressTimeline
+        data:
+          timeline: 'timeline-0'
+          delta: 1
+
+    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
+      .toMatchObject
+        progress: 0.5
+        timeline: 'timeline-0'
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: sueId
+          timeline: 'timeline-0'
+    expect @store.getState().entities.dict[sueId].attachedTimelines.length
+      .toBe 1
+    expect @store.getState().entities.dict[sueId].attachedTimelines[0]
+      .toMatchObject
+        progress: 0
+        timeline: 'timeline-0'
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.ProgressTimeline
+        data:
+          timeline: 'timeline-0'
+          delta: 1
+
+    # bob was further along, so his progress is different from sue's
+    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
+      .toMatchObject
+        progress: 1
+        timeline: 'timeline-0'
+    expect @store.getState().entities.dict[sueId].attachedTimelines[0]
+      .toMatchObject
+        progress: 0.5
+        timeline: 'timeline-0'

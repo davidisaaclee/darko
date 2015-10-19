@@ -27,15 +27,15 @@ update = (state, dispatch) ->
 
 
 draw = (ctx, entities) ->
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.clearRect 0, 0, ctx.canvas.width, ctx.canvas.height
   ctx.beginPath()
 
-  getPosition = (entity) ->
-    if entity?
-      p = entities.dict[entity].data.position
+  getPosition = (entityId) ->
+    if entityId?
+      p = entities.dict[entityId].data.position
       x: p.x * ctx.canvas.width
       y: p.y * ctx.canvas.height
-    else entity
+    else entityId
 
   entityKeys = Object.keys entities.dict
 
@@ -62,6 +62,7 @@ diffKeys = (previous, current) ->
   added: (Object.keys current).filter (key) -> not previous[key]?
   removed: (Object.keys previous).filter (key) -> not current[key]?
 
+
 setup = () ->
   store = redux.createStore reducer
 
@@ -70,6 +71,7 @@ setup = () ->
 
   store.subscribe () ->
     update store.getState(), store.dispatch
+
 
 setupTimelines = (dispatch) ->
   dispatch
@@ -96,6 +98,7 @@ setupTimelines = (dispatch) ->
       action: (progress, entityId, entityData) ->
         _.assign {}, entityData,
           strokeColor: randomColor()
+
 
 setupInteractions = (dispatch, store) ->
   # Adding entities
@@ -124,7 +127,7 @@ setupInteractions = (dispatch, store) ->
           type: k.ProgressEntityTimeline
           data:
             entity: entityId
-            timelines: ['timeline-0']
+            timeline: 'timeline-0'
             delta: v - previousSliderValue
     previousSliderValue = v
 
