@@ -22,14 +22,11 @@
   "author": "David Isaac Lee <david@david-lee.net> (http://david-lee.net/)",
   "license": "ISC",
   "devDependencies": {
-    "autoprefixer-stylus": "^0.8.0",
     "browserify": "^11.2.0",
     "coffeeify": "^1.1.0",
-    "coffeetape": "^1.0.1",
     "jasmine": "^2.3.2",
     "jasmine-node": "^2.0.0-beta4",
     "livereload": "^0.3.7",
-    "stylus": "^0.52.4",
     "watchify": "^3.4.0"
   },
   "dependencies": {
