@@ -98,6 +98,7 @@ setupTimelines = (dispatch) ->
           strokeColor: randomColor()
 
 setupInteractions = (dispatch, store) ->
+  # Adding entities
   addEntityButton = document.getElementById 'add-entity'
   addEntityButton.addEventListener 'click', () ->
     dispatch
@@ -109,6 +110,8 @@ setupInteractions = (dispatch, store) ->
             x: 0
             y: 0
 
+
+  # Timeline slider
   timelineSlider = document.getElementById 'timeline-slider'
   getTimelineValue = () -> timelineSlider.value / 100
 
@@ -128,6 +131,7 @@ setupInteractions = (dispatch, store) ->
   timelineSlider.addEventListener 'input', progressTimeline
   timelineSlider.addEventListener 'change', progressTimeline
 
+  # Time control of slider
   isAnimating = true
   animationOffset = 0
   time = 0
@@ -135,18 +139,86 @@ setupInteractions = (dispatch, store) ->
     time = t
     window.requestAnimationFrame updateTimeline
     if isAnimating
-      timelineSlider.value = wrap 0, 100, Math.floor ((animationOffset + t) / 30)
+      timelineSlider.value = wrap 0, 100, Math.floor ((animationOffset + t) / 40)
       do progressTimeline
 
 
-  timelineSlider.addEventListener 'mousedown', () ->
+  stopAnimation = () ->
     isAnimating = false
 
-  document.addEventListener 'mouseup', () ->
+  startAnimation = () ->
     if not isAnimating
       isAnimating = true
       animationOffset = timelineSlider.value * 30 - time
-      do updateTimeline
+
+  # User-editing override of time control
+  # timelineSlider.addEventListener 'mousedown', stopAnimation
+  # document.addEventListener 'mouseup', startAnimation
+
+  # Gesture control of slider
+  canvas = document.querySelector 'canvas'
+  startPoint = null
+
+  timeoutId = null
+  shouldMakeNewEntity = true
+
+  down = (pt) ->
+    shouldMakeNewEntity = true
+    if timeoutId?
+      clearTimeout timeoutId
+      timeoutId = null
+    timeoutId = setTimeout (() ->
+      shouldMakeNewEntity = false), 100
+    startPoint = pt
+
+  move = (pt) ->
+    if not shouldMakeNewEntity
+      stopAnimation()
+      timelineSlider.value = wrap 0, 100, (pt.x - startPoint.x) / 3
+      do progressTimeline
+
+  up = (pt) ->
+    if shouldMakeNewEntity
+      dispatch
+        type: k.AddEntity
+        data:
+          initialData:
+            strokeColor: 'black'
+            position:
+              x: 0
+              y: 0
+
+    startAnimation()
+
+  canvas.addEventListener 'touchstart', (evt) ->
+    evt.preventDefault()
+    down
+      x: evt.touches[0].clientX
+      y: evt.touches[0].clientY
+  canvas.addEventListener 'touchmove', (evt) ->
+    evt.preventDefault()
+    move
+      x: evt.touches[0].clientX
+      y: evt.touches[0].clientY
+  canvas.addEventListener 'touchend', (evt) ->
+    up()
+
+  mouseIsDown = false
+  canvas.addEventListener 'mousedown', (evt) ->
+    mouseIsDown = true
+    down
+      x: evt.clientX
+      y: evt.clientY
+  canvas.addEventListener 'mousemove', (evt) ->
+    if mouseIsDown
+      move
+        x: evt.clientX
+        y: evt.clientY
+  canvas.addEventListener 'mouseup', (evt) ->
+    mouseIsDown = false
+    up()
+
+
 
   do updateTimeline
 
@@ -169,14 +241,9 @@ randomColor = () ->
 
 resizeCanvas = () ->
   canvas = document.querySelector 'canvas'
-  # canvas.style.position = 'absolute'
-  # canvas.style.width = 0
-  # canvas.style.height = 0
-  canvas.width =
-    # canvas.style.width =
-    canvas.parentNode.getBoundingClientRect().width
-  canvas.height =
-    # canvas.style.height =
-    canvas.parentNode.getBoundingClientRect().height
+  bcr = canvas.parentNode.getBoundingClientRect()
+  canvas.width = bcr.width
+  canvas.height = bcr.height
+
 window.addEventListener 'resize', resizeCanvas, false
 do resizeCanvas
