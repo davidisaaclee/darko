@@ -1,7 +1,11 @@
 ###
 State ::=
-  timelines: { id -> Timeline }
-  entities: { id -> Entity | '_nextId': () -> String }
+  timelines:
+    dict: { id -> Timeline }
+    _spawnedCount: Number
+  entities:
+    dict: { id -> Entity }
+    _spawnedCount: Number
 
 Timeline ::=
   # Progress along the timeline is scaled by its `length`.
@@ -16,12 +20,13 @@ Entity ::=
 
 Trigger ::=
   # When `position` is a float, the trigger's `action` is performed when
-  #   `progress` crosses that float.
+  #   `progress` crosses that float, and the resulting data is merged into the
+  #   invoking entity's `data` field.
   # When `position` is a function, it is called on every progress update,
   #   providing as arguments `newProgress, oldProgress`. If the function returns
   #   `true`, the trigger's `action` is performed.
   position: Float | Function
-  action: Function
+  action: Mapping
 
 Mapping ::= (progress: Float, entityId: String, entityData: Object) -> Object
   progress - The timeline's most recent progress value.
