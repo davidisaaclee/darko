@@ -165,3 +165,12 @@ randomColor = () ->
        #{random8bit()}, \
        1)
   """
+
+resizeCanvas = () ->
+  canvas = document.querySelector 'canvas'
+  canvas.width = canvas.parentNode.clientWidth
+  canvas.height = canvas.parentNode.clientHeight
+  canvas.style.width = canvas.width
+  canvas.style.height = canvas.height
+window.addEventListener 'resize', resizeCanvas, false
+do resizeCanvas
