@@ -68,7 +68,7 @@ batchProgress = (state, progressInfo) ->
         applyThisTrigger = applyTrigger newProgress, oldProgress
         timelineObj.triggers.reduce applyThisTrigger, data
 
-      return newTimelines.reduce reduceTriggers,
+      newTimelines.reduce reduceTriggers,
         state_.entities.dict[entityId].data
 
   mapAssign state__,
@@ -93,10 +93,16 @@ reducer = (state = {}, action) ->
     when k.ProgressTimeline
       {timeline, delta} = action.data
 
-      
+      progressInfo = {}
+      progressInfo[timeline] =
+        delta: delta
+
+      batchProgress state, progressInfo
+
 
     when k.ProgressEntityTimeline
       {entity, timeline, delta} = action.data
+
       progressInfo = {}
       progressInfo[timeline] =
         entities: [entity]
@@ -106,6 +112,7 @@ reducer = (state = {}, action) ->
 
     when k.AttachEntityToTimeline
       {entity, timeline, progress} = action.data
+
       mapAssign (_.cloneDeep state),
         "entities.dict.#{entity}.attachedTimelines",
         (oldAttachedTimelines) ->

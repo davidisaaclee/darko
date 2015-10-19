@@ -3428,8 +3428,12 @@ module.exports = actions.reduce((function(acc, actionType) {
 
 /*
 State ::=
-  timelines: { id -> Timeline }
-  entities: { id -> Entity | '_nextId': () -> String }
+  timelines:
+    dict: { id -> Timeline }
+    _spawnedCount: Number
+  entities:
+    dict: { id -> Entity }
+    _spawnedCount: Number
 
 Timeline ::=
    * Progress along the timeline is scaled by its `length`.
@@ -3441,15 +3445,17 @@ Timeline ::=
 
 Entity ::=
   attachedTimelines: [EntityTimelineRelation]
+  data: Object
 
 Trigger ::=
    * When `position` is a float, the trigger's `action` is performed when
-   *   `progress` crosses that float.
+   *   `progress` crosses that float, and the resulting data is merged into the
+   *   invoking entity's `data` field.
    * When `position` is a function, it is called on every progress update,
    *   providing as arguments `newProgress, oldProgress`. If the function returns
    *   `true`, the trigger's `action` is performed.
   position: Float | Function
-  action: Function
+  action: Mapping
 
 Mapping ::= (progress: Float, entityId: String, entityData: Object) -> Object
   progress - The timeline's most recent progress value.
@@ -3569,7 +3575,12 @@ reducer = function(state, action) {
   }
   switch (action.type) {
     case k.ProgressTimeline:
-      return ref = action.data, timeline = ref.timeline, delta = ref.delta, ref;
+      ref = action.data, timeline = ref.timeline, delta = ref.delta;
+      progressInfo = {};
+      progressInfo[timeline] = {
+        delta: delta
+      };
+      return batchProgress(state, progressInfo);
     case k.ProgressEntityTimeline:
       ref1 = action.data, entity = ref1.entity, timeline = ref1.timeline, delta = ref1.delta;
       progressInfo = {};

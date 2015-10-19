@@ -72,6 +72,7 @@ setup = () ->
   store.subscribe () ->
     update store.getState(), store.dispatch
 
+
 setupTimelines = (dispatch) ->
   dispatch
     type: k.AddTimeline
@@ -97,6 +98,7 @@ setupTimelines = (dispatch) ->
       action: (progress, entityId, entityData) ->
         _.assign {}, entityData,
           strokeColor: randomColor()
+
 
 setupInteractions = (dispatch, store) ->
   # Adding entities
@@ -125,7 +127,7 @@ setupInteractions = (dispatch, store) ->
           type: k.ProgressEntityTimeline
           data:
             entity: entityId
-            timelines: ['timeline-0']
+            timeline: 'timeline-0'
             delta: v - previousSliderValue
     previousSliderValue = v
 

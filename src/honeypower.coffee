@@ -17,6 +17,7 @@ Timeline ::=
 
 Entity ::=
   attachedTimelines: [EntityTimelineRelation]
+  data: Object
 
 Trigger ::=
   # When `position` is a float, the trigger's `action` is performed when

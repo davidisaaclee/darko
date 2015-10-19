@@ -546,7 +546,7 @@ describe 'honeypower', () ->
       .toBe 'green'
 
 
-  xit 'can progress timelines by timelines', () ->
+  it 'can progress timelines by timelines', () ->
     assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.AddEntity
@@ -575,14 +575,14 @@ describe 'honeypower', () ->
         progress: 0
         id: 'timeline-0'
 
-    assertPure (() => @store.getState), () =>
+    assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.ProgressTimeline
         data:
           timeline: 'timeline-0'
           delta: 1
 
-    expect @store.getState().entities.dict[sueId].attachedTimelines[0]
+    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
       .toMatchObject
         progress: 0.5
         id: 'timeline-0'
