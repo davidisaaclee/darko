@@ -142,7 +142,7 @@ describe 'construction', () ->
 
 
 
-describe 'honeypower', () ->
+describe 'darko', () ->
   beforeEach () ->
     # Add the custom object matcher.
     # (see `./util/ObjectSubsetMatcher` for description of this matcher)
@@ -371,8 +371,78 @@ describe 'honeypower', () ->
         foo: 2
 
 
+  it 'should respect trigger order within progress change', () ->
+    triggerActionFn = (callId) -> (progress, entityId, data) ->
+      _.assign {}, data,
+        callOrder: [data.callOrder..., callId]
+    triggerActionSpy0 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy0')
+      .and.callThrough()
+    triggerActionSpy1 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy1')
+      .and.callThrough()
+    triggerActionSpy2 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy2')
+      .and.callThrough()
 
-  it 'should trigger predicate-driven events', () ->
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            callOrder: []
+
+      @store.dispatch
+        type: k.AddTrigger
+        data:
+          timeline: 'timeline-0'
+          position: 0.6
+          action: triggerActionSpy0
+
+      @store.dispatch
+        type: k.AddTrigger
+        data:
+          timeline: 'timeline-0'
+          position: 0.65
+          action: triggerActionSpy1
+
+      @store.dispatch
+        type: k.AddTrigger
+        data:
+          timeline: 'timeline-0'
+          position: 0.62
+          action: triggerActionSpy2
+
+      @store.dispatch
+        type: k.ProgressEntityTimeline
+        data:
+          entity: 'entity-0'
+          timeline: 'timeline-0'
+          delta: 2
+
+    expect @store.getState().entities.dict['entity-0'].data.callOrder
+      .toEqual ['spy0', 'spy2', 'spy1']
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.UpdateEntityData
+        data:
+          entity: 'entity-0'
+          changes:
+            callOrder: []
+
+      @store.dispatch
+        type: k.ProgressEntityTimeline
+        data:
+          entity: 'entity-0'
+          timeline: 'timeline-0'
+          delta: -1
+
+    expect @store.getState().entities.dict['entity-0'].data.callOrder
+      .toEqual ['spy1', 'spy2', 'spy0']
+
+
+  # TODO: Uncertain about this spec now. Maybe it should be changed to edge
+  #       detection? Or maybe keep it simple.
+  xit 'should trigger predicate-driven events', () ->
     triggerActionSpy = (progress, id, data) -> data
     triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
       .and.callThrough()

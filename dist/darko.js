@@ -3560,11 +3560,19 @@ batchProgress = function(state, progressInfo) {
     return newProgress;
   });
   state__ = mapAssign(state_, 'entities.dict.*.data', function(previousData, arg, arg1) {
-    var applyTrigger, entityId, entityObj, newTimelines, oldTimelines, reduceTriggers;
+    var applyTrigger, entityId, entityObj, newTimelines, oldTimelines, reduceTriggers, triggersToInvoke;
     entityObj = arg[0];
     entityId = arg1[0];
     oldTimelines = state.entities.dict[entityId].attachedTimelines;
     newTimelines = entityObj.attachedTimelines;
+    reduceTriggers = function(data, __, i) {
+      var applyThisTrigger, newProgress, oldProgress, timelineObj;
+      timelineObj = state_.timelines.dict[newTimelines[i].timeline];
+      newProgress = newTimelines[i].progress;
+      oldProgress = oldTimelines[i].progress;
+      applyThisTrigger = applyTrigger(newProgress, oldProgress);
+      return timelineObj.triggers.reduce(applyThisTrigger, data);
+    };
     applyTrigger = function(newProgress, oldProgress) {
       return function(entityData, trigger) {
         var shouldPerformTrigger;
@@ -3587,15 +3595,54 @@ batchProgress = function(state, progressInfo) {
         }
       };
     };
-    reduceTriggers = function(data, __, i) {
-      var applyThisTrigger, newProgress, oldProgress, timelineObj;
-      timelineObj = state_.timelines.dict[newTimelines[i].timeline];
-      newProgress = newTimelines[i].progress;
-      oldProgress = oldTimelines[i].progress;
-      applyThisTrigger = applyTrigger(newProgress, oldProgress);
-      return timelineObj.triggers.reduce(applyThisTrigger, data);
-    };
-    return newTimelines.reduce(reduceTriggers, state_.entities.dict[entityId].data);
+    triggersToInvoke = _(newTimelines).map(function(attachedTimeline, idx) {
+      var newProgress, oldProgress;
+      oldProgress = oldTimelines[idx].progress;
+      newProgress = newTimelines[idx].progress;
+      return state_.timelines.dict[attachedTimeline.timeline].triggers.filter(function(trigger) {
+        var ref, ref1;
+        switch (false) {
+          case !_.isNumber(trigger.position):
+            return ((oldProgress < (ref = trigger.position) && ref <= newProgress)) || ((newProgress < (ref1 = trigger.position) && ref1 <= oldProgress));
+          case !_.isFunction(trigger.position):
+            return trigger.position(newProgress, oldProgress);
+          default:
+            console.warn('Invalid trigger position on trigger', trigger);
+            return false;
+        }
+      }).map(function(trigger) {
+        return {
+          trigger: trigger,
+          oldProgress: oldProgress,
+          newProgress: newProgress
+        };
+      });
+    }).reduce((function(p, e) {
+      return Array.prototype.concat(p, e);
+    }), []);
+    return _(triggersToInvoke).sortByOrder(function(arg2) {
+      var newProgress, oldProgress, sign, trigger;
+      trigger = arg2.trigger, oldProgress = arg2.oldProgress, newProgress = arg2.newProgress;
+      switch (false) {
+        case !_.isNumber(trigger.position):
+          sign = function(x) {
+            if (x > 0) {
+              return 1;
+            } else if (x < 0) {
+              return -1;
+            } else {
+              return 0;
+            }
+          };
+          return trigger.position * sign(newProgress - oldProgress);
+        default:
+          throw new Error('Invalid trigger position on trigger: ' + trigger.position);
+      }
+    }).reduce((function(data, arg2) {
+      var newProgress, trigger;
+      trigger = arg2.trigger, newProgress = arg2.newProgress;
+      return _.assign({}, data, trigger.action(newProgress, entityId, data));
+    }), entityObj.data);
   });
   return mapAssign(state__, 'entities.dict.*.data', function(previousData, arg, arg1) {
     var applyMapping, entityId, entityObj, r;

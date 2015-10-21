@@ -1,12 +1,12 @@
 {
-  "name": "honeypower",
+  "name": "darko",
   "version": "0.1.0",
   "description": "",
   "main": "dist/*.js",
   "scripts": {
     "build-js-vendor": "browserify -r lodash -r redux -o dist/vendor.js",
-    "build-js": "browserify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\"",
-    "watch-js": "watchify -x lodash -x redux src/honeypower.coffee -o dist/honeypower.js -t coffeeify --extension=\".coffee\" -dv",
+    "build-js": "browserify -x lodash -x redux src/darko.coffee -o dist/darko.js -t coffeeify --extension=\".coffee\"",
+    "watch-js": "watchify -x lodash -x redux src/darko.coffee -o dist/darko.js -t coffeeify --extension=\".coffee\" -dv",
     "//": "Using `globstar` here for recursive wildcard support. (Also, using `jasmine-node` pretty much exclusively for the CoffeeScript support...)",
     "run-tests": "globstar --node -- jasmine-node --coffee \"spec/**/*[Ss]pec.coffee\"; exit 0",
     "watch-tests": "",

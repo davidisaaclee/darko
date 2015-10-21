@@ -1,6 +1,4 @@
 # TODO
-- action for progressing by timeline, not by entity-timeline
-
 - conditional / switching timelines
 
 - higher-level timelines (e.g. spline timelines that already know how to move

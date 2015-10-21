@@ -45,6 +45,14 @@ batchProgress = (state, progressInfo) ->
       oldTimelines = state.entities.dict[entityId].attachedTimelines
       newTimelines = entityObj.attachedTimelines
 
+      reduceTriggers = (data, __, i) ->
+        timelineObj = state_.timelines.dict[newTimelines[i].timeline]
+        newProgress = newTimelines[i].progress
+        oldProgress = oldTimelines[i].progress
+
+        applyThisTrigger = applyTrigger newProgress, oldProgress
+        timelineObj.triggers.reduce applyThisTrigger, data
+
       applyTrigger = (newProgress, oldProgress) -> (entityData, trigger) ->
         shouldPerformTrigger = switch
           when _.isNumber trigger.position
@@ -60,16 +68,47 @@ batchProgress = (state, progressInfo) ->
         then _.assign {}, entityData, (trigger.action newProgress, entityId, entityData)
         else entityData
 
-      reduceTriggers = (data, __, i) ->
-        timelineObj = state_.timelines.dict[newTimelines[i].timeline]
-        newProgress = newTimelines[i].progress
-        oldProgress = oldTimelines[i].progress
+      # NOTE: does not respect trigger position across entities -
+      #   but if `Mapping`s truly do not modify anything but entity data,
+      #   this shouldn't be a problem...
+      # newTimelines.reduce reduceTriggers,
+      #   state_.entities.dict[entityId].data
 
-        applyThisTrigger = applyTrigger newProgress, oldProgress
-        timelineObj.triggers.reduce applyThisTrigger, data
+      triggersToInvoke = _ newTimelines
+        .map (attachedTimeline, idx) ->
+          oldProgress = oldTimelines[idx].progress
+          newProgress = newTimelines[idx].progress
 
-      newTimelines.reduce reduceTriggers,
-        state_.entities.dict[entityId].data
+          state_.timelines.dict[attachedTimeline.timeline].triggers
+            .filter (trigger) ->
+              switch
+                when _.isNumber trigger.position
+                  (oldProgress < trigger.position <= newProgress) or
+                  (newProgress < trigger.position <= oldProgress)
+                when _.isFunction trigger.position
+                  trigger.position newProgress, oldProgress
+                else
+                  console.warn 'Invalid trigger position on trigger', trigger
+                  false
+            .map (trigger) ->
+              trigger: trigger
+              oldProgress: oldProgress
+              newProgress: newProgress
+        .reduce ((p, e) -> Array.prototype.concat p, e), []
+
+      _ triggersToInvoke
+        .sortByOrder ({trigger, oldProgress, newProgress}) ->
+          switch
+            when _.isNumber trigger.position
+              sign = (x) -> if x > 0 then 1 else if x < 0 then -1 else 0
+              trigger.position * sign (newProgress - oldProgress)
+            # when _.isFunction trigger.position
+            #   # fun stuffffff let's find that crossing point i guess?
+            else
+              throw new Error 'Invalid trigger position on trigger: ' + trigger.position
+        .reduce ((data, {trigger, newProgress}) ->
+          _.assign {}, data, (trigger.action newProgress, entityId, data)),
+          entityObj.data
 
   mapAssign state__,
     'entities.dict.*.data',
