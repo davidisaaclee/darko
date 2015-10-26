@@ -14,7 +14,7 @@
     "watch-demo": "watchify -x lodash -x redux demo/src/demo.coffee -o demo/dist/demo.js -t coffeeify --extension=\".coffee\" -dv",
     "livereload-demo": "livereload demo dist",
     "demo": "npm run watch-demo & npm run livereload-demo",
-    "build": "npm run build-js; npm run test",
+    "build": "npm run build-js-vendor; npm run build-js",
     "test": "npm run build-js; npm run run-tests",
     "watch": "npm run watch-js; npm run watch-tests",
     "dev": "npm run watch; npm run livereload"
