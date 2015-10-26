@@ -5,7 +5,7 @@
   "main": "dist/darko.js",
   "scripts": {
     "build-js-vendor": "browserify -r lodash -r redux -o dist/vendor.js",
-    "build-js": "browserify -x lodash -x redux src/darko.coffee -o dist/darko.js -t coffeeify --extension=\".coffee\"",
+    "build-js": "browserify -x lodash -x redux src/darko.coffee -o dist/darko.js -t coffeeify --extension=\".coffee\" -s module.exports",
     "watch-js": "watchify -x lodash -x redux src/darko.coffee -o dist/darko.js -t coffeeify --extension=\".coffee\" -dv",
     "//": "Using `globstar` here for recursive wildcard support. (Also, using `jasmine-node` pretty much exclusively for the CoffeeScript support...)",
     "run-tests": "globstar --node -- jasmine-node --coffee \"spec/**/*[Ss]pec.coffee\"; exit 0",
