@@ -2,7 +2,7 @@
   "name": "darko",
   "version": "0.1.0",
   "description": "",
-  "main": "dist/*.js",
+  "main": "dist/darko.js",
   "scripts": {
     "build-js-vendor": "browserify -r lodash -r redux -o dist/vendor.js",
     "build-js": "browserify -x lodash -x redux src/darko.coffee -o dist/darko.js -t coffeeify --extension=\".coffee\"",
