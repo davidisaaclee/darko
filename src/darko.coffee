@@ -88,4 +88,6 @@ EntityTimelineRelation ::=
   progress: Float
 ###
 
-module.exports = require './reducers/base'
+module.exports =
+  k: require './actionTypes'
+  reducer: require './reducers/base'
