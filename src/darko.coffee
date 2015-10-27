@@ -90,5 +90,5 @@ EntityTimelineRelation ::=
 
 
 module.exports =
-  k: require './actionTypes'
+  k: require './ActionTypes'
   reducer: require './reducers/base'
