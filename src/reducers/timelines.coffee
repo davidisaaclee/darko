@@ -7,7 +7,8 @@ addChildReducers = require '../util/addChildReducers'
 reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
   switch action.type
     when k.AddTimeline
-      {length, shouldLoop} = _.defaults action.data,
+      {id, length, shouldLoop} = _.defaults action.data,
+        id: "timeline-#{state._spawnedCount}"
         length: 1
         shouldLoop: false
 
@@ -15,7 +16,8 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
         dict: {}
         _spawnedCount: state._spawnedCount + 1
       # new entity
-      changes.dict["timeline-#{state._spawnedCount}"] =
+      changes.dict[id] =
+        id: id
         length: length
         shouldLoop: shouldLoop
         triggers: []

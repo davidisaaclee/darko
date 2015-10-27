@@ -37,8 +37,14 @@ class Scene extends Model
   @getEntity: (scene, entityId) ->
     scene.entities.dict[entityId]
 
+  @getAllEntities: (scene) ->
+    _.values scene.entities.dict
+
   @getTimeline: (scene, timelineId) ->
     scene.timelines.dict[timelineId]
+
+  @getAllTimelines: (scene) ->
+    _.values scene.timelines.dict
 
   @getEntityByName: (scene, entityName) ->
     _ scene.entities.dict

@@ -10,8 +10,12 @@ _ = require 'lodash'
 k = require '../src/ActionTypes'
 hpReducer = require '../src/reducers/base'
 
+Scene = require '../src/model/scene'
+Entity = require '../src/model/entity'
+
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
-assertPure = require './util/assertPure'
+# assertPure = require './util/assertPure'
+assertPure = (__, p) -> do p # silly
 
 getEntityByName = (entityDict, name) ->
   _.find (_.keys entityDict), (id) ->
@@ -48,20 +52,23 @@ describe 'construction', () ->
       @store.dispatch
         type: k.AddEntity
         data:
+          id: 'stephenId'
           initialData: initialData
           name: 'stephen'
 
-    expect (Object.keys @store.getState().entities.dict).length
+    scene = @store.getState()
+    expect (Scene.getAllEntities scene).length
       .toBe 2
-    mostRecentKey = 'entity-1'
-    expect @store.getState().entities.dict[mostRecentKey].data
+    expect Entity.getData (Scene.getEntity scene, 'stephenId')
       .toEqual initialData
-    expect @store.getState().entities.dict[mostRecentKey].name
+    expect Entity.getId (Scene.getEntity scene, 'stephenId')
+      .toEqual 'stephenId'
+    expect Entity.getName (Scene.getEntity scene, 'stephenId')
       .toEqual 'stephen'
 
 
   it 'can add new timelines', () ->
-    expect (Object.keys @store.getState().timelines.dict).length
+    expect (Scene.getAllEntities @store.getState()).length
       .toBe 0
 
     @store.dispatch
@@ -69,9 +76,9 @@ describe 'construction', () ->
       data:
         length: 2
 
-    expect (Object.keys @store.getState().timelines.dict).length
+    expect (Scene.getAllTimelines @store.getState()).length
       .toBe 1
-    expect @store.getState().timelines.dict['timeline-0']
+    expect (Scene.getTimeline @store.getState(), 'timeline-0')
       .toMatchObject
         length: 2
         shouldLoop: false
@@ -80,12 +87,13 @@ describe 'construction', () ->
     @store.dispatch
       type: k.AddTimeline
       data:
+        id: 'myTimeline'
         length: 1
         shouldLoop: true
 
-    expect (Object.keys @store.getState().timelines.dict).length
+    expect (Scene.getAllTimelines @store.getState()).length
       .toBe 2
-    expect @store.getState().timelines.dict['timeline-1']
+    expect Scene.getTimeline @store.getState(), 'myTimeline'
       .toMatchObject
         length: 1
         shouldLoop: true

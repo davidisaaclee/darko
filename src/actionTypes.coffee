@@ -23,6 +23,7 @@ actions = [
   # Adds a new entity, with an optional initial `data` field and optional `name`
   #   field.
   #
+  #   [id: String]        # if not supplied, will auto-generate
   #   initialData: Object
   #   name: String
   'AddEntity'
@@ -30,6 +31,7 @@ actions = [
   # Adds a new timeline with the provided `length`, and optionally whether the
   #   timeline `shouldLoop`.
   #
+  #   [id: String]        # if not supplied, will auto-generate
   #   length: Number
   #   shouldLoop: Boolean # TODO: Does it make sense to have this loop parameter?
   #                       #       Seems like it should just remain an action.
