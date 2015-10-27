@@ -2,11 +2,11 @@
   "name": "darko",
   "version": "0.1.0",
   "description": "",
-  "main": "src/darko.coffee",
+  "main": "dist/darko.js",
   "scripts": {
-    "build-js-vendor": "browserify -r lodash -r redux > dist/vendor.js",
-    "build-js": "browserify src/darko.coffee -x lodash -x redux -s module.exports --extension=\".coffee\" --full-paths > dist/darko.js",
-    "watch-js": "watchify -x lodash -x redux src/darko.coffee -o dist/darko.js --extension=\".coffee\" -dv",
+    "build:js": "coffee -r redux -r lodash -o dist --map -c src",
+    "build": "npm run build:js",
+    "watch:js": "watchify -x lodash -x redux src/darko.coffee -o dist/darko.js --extension=\".coffee\" -dv",
     "//": "Using `globstar` here for recursive wildcard support. (Also, using `jasmine-node` pretty much exclusively for the CoffeeScript support...)",
     "run-tests": "globstar --node -- jasmine-node --coffee \"spec/**/*[Ss]pec.coffee\"; exit 0",
     "watch-tests": "",
@@ -14,13 +14,9 @@
     "watch-demo": "watchify -x lodash -x redux demo/src/demo.coffee -o demo/dist/demo.js --extension=\".coffee\" -dv",
     "livereload-demo": "livereload demo dist",
     "demo": "npm run watch-demo && npm run livereload-demo",
-    "build": "npm run build-js-vendor && npm run build-js",
     "test": "npm run build-js && npm run run-tests",
     "watch": "npm run watch-js && npm run watch-tests",
     "dev": "npm run watch && npm run livereload"
-  },
-  "browserify": {
-    "transform": ["coffeeify"]
   },
   "author": "David Isaac Lee <david@david-lee.net> (http://david-lee.net/)",
   "license": "ISC",
