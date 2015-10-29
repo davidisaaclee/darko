@@ -23,3 +23,14 @@ Timeline ::=
 ###
 class Timeline extends Model
   constructor: (@length = 1, @triggers = [], @mappings = []) ->
+
+  @reducer: (timeline, data, changes) ->
+    console.warn 'Timeline should override Timeline.reducer: ', timeline
+
+  @progress: (timeline, progress) ->
+    console.warn 'Timeline should override Timeline.progress: ', timeline
+
+  @typeOf: (timeline) -> timeline.type
+
+
+module.exports = Timeline
