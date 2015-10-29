@@ -1,5 +1,5 @@
 _ = require 'lodash'
-Model = require './model'
+Model = require './Model'
 Timelines = require './timelines/Timelines'
 
 ###
@@ -47,28 +47,6 @@ class Entity extends Model
   @getProgressForTimeline: (entity, timelineId) ->
     tl = _.find entity.attachedTimelines, ({timeline}) -> timeline is timelineId
     return tl?.progress
-
-
-  @incrementProgressOnTimeline: (entity, delta, timelineId) ->
-    {attachedTimelines} = entity
-    idx = _.findIndex attachedTimelines, timeline: timelineId
-    if idx isnt -1
-      newAttachedTimeline = _.assign {}, attachedTimelines[idx],
-        progress: delta + attachedTimelines[idx].progress
-      _.assign {}, entity,
-        attachedTimelines: [ attachedTimelines[0...idx]...
-                           , newAttachedTimeline
-                           , attachedTimelines[idx + 1..]... ]
-    else entity
-
-  # @calculateData: (entity) ->
-  #   reduction = (data, elm) ->
-  #     timeline = GET_TIMELINE elm.timeline
-  #     reducer = (a, b) -> Timelines.reducer timeline, a, b
-  #     reducer data, (Timelines.progress timeline, elm.progress)
-
-  #   _.assign {}, entity,
-  #     data: entity.attachedTimelines.reduce reduction, entity.localData
 
 
   @attachTimeline: (entity, timeline, progress) ->

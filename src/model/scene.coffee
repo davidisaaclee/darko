@@ -1,9 +1,11 @@
 _ = require 'lodash'
-Model = require './model'
-Entity = require './entity'
+Model = require './Model'
+Entity = require './Entity'
 
 Timelines = require './timelines/Timelines'
 buildObjectWithPropertyKey = require '../util/buildObjectWithPropertyKey'
+clamp = require '../util/clamp'
+wrap = require '../util/wrap'
 
 ###
 # The main state of an interactive scene.
@@ -64,16 +66,6 @@ class Scene extends Model
     timeline = Scene.getTimeline scene, timelineId
     entityDict = scene.entities.dict
 
-    # returns the modified entity
-    calculateEntityData = (scene) -> (entity) ->
-      reduction = (data, elm) ->
-        timeline = Scene.getTimeline scene, elm.timeline
-        reducer = (a, b) -> Timelines.reducer timeline, a, b
-        reducer data, (Timelines.progress timeline, elm.progress)
-
-      _.assign {}, entity,
-        data: entity.attachedTimelines.reduce reduction, entity.localData
-
     _.assign {}, scene,
       entities: _.assign {}, scene.entities,
         dict: _.assign {}, scene.entities.dict,
@@ -81,13 +73,14 @@ class Scene extends Model
             # map into list of actual entities
             .map _.propertyOf entityDict
             # update all progresses
-            .map (e) -> Entity.incrementProgressOnTimeline e, delta, timelineId
+            # .map (e) -> Entity.incrementProgressOnTimeline e, delta, timelineId
+            .map (e) ->
+              (Scene.incrementProgressOnTimeline scene) e, delta, timelineId
             # recalculate all changed entity data
             # .map Entity.calculateData
-            .map (calculateEntityData scene)
+            .map Scene.calculateEntityData scene
             # build back into a dictionary
             .reduce (buildObjectWithPropertyKey 'id'), {}
-
 
 
   @mutateEntity: (scene, entityId, mutator) ->
@@ -103,6 +96,41 @@ class Scene extends Model
       scene
 
 
+  ### Entity mutators ###
+  # These functions are entity operations that need data from elsewhere in the
+  #   scene. As such, they take in a `Scene` and return a function which takes
+  #   in an entity and returns a modified version of the entity.
+
+  # returns entity
+  @incrementProgressOnTimeline: (scene) -> (entity, delta, timelineId) ->
+    {attachedTimelines} = entity
+    idx = _.findIndex attachedTimelines, timeline: timelineId
+    if idx isnt -1
+      prevTl = attachedTimelines[idx]
+      timelineObj = Scene.getTimeline scene, prevTl.timeline
+      scaledDelta = delta / (Timelines.getLength timelineObj)
+      newProgress =
+        if Timelines.getShouldLoop timelineObj
+        then wrap 0, 1, scaledDelta + prevTl.progress
+        else clamp 0, 1, scaledDelta + prevTl.progress
+
+      newAttachedTimeline = _.assign {}, prevTl,
+        progress: newProgress
+      _.assign {}, entity,
+        attachedTimelines: [ attachedTimelines[0...idx]...
+                           , newAttachedTimeline
+                           , attachedTimelines[idx + 1..]... ]
+    else entity
+
+
+  @calculateEntityData = (scene) -> (entity) ->
+    reduction = (data, elm) ->
+      timeline = Scene.getTimeline scene, elm.timeline
+      reducer = (a, b) -> Timelines.reducer timeline, a, b
+      reducer data, (Timelines.progress timeline, elm.progress)
+
+    _.assign {}, entity,
+      data: entity.attachedTimelines.reduce reduction, entity.localData
 
 
 module.exports = Scene

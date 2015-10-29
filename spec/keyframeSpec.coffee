@@ -1,11 +1,11 @@
 _ = require 'lodash'
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
-hpReducer = require '../src/reducers/base'
+hpReducer = require '../src/reducers/SceneReducer'
 
-Scene = require '../src/model/scene'
-Entity = require '../src/model/entity'
-Timeline = require '../src/model/timeline'
+Scene = require '../src/model/Scene'
+Entity = require '../src/model/Entity'
+Timeline = require '../src/model/timelines/Timeline'
 Timelines = require '../src/model/timelines/Timelines'
 KeyframeTimeline = require '../src/model/timelines/KeyframeTimeline'
 

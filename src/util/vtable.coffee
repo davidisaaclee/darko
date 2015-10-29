@@ -19,14 +19,17 @@ makeVTable = (selector, base, extensions) ->
   _ base
     .methods()
     .map (key) ->
-      result = [key]
-      result.push (self, args...) ->
+      method = (self, args...) ->
         ext = extensions[selector self]
         if ext?[key]?
         then ext[key] self, args...
         else base[key] self, args...
-      return result
+
+      return [key, method]
     .zipObject()
     .value()
 
+
+
+# module.exports = makeVTable
 module.exports = makeVTable

@@ -1,5 +1,60 @@
 _ = require 'lodash'
 Immutable = require 'immutable'
+Timeline = require './Timeline'
+
+class KeyframeTimeline extends Timeline
+  @type: 'KeyframeTimeline'
+
+  constructor: (length, @keyframes = Immutable.List()) ->
+    super KeyframeTimeline.type, length
+
+
+  @withKeyframes: (length, keyframesObj) ->
+    _ keyframesObj
+      # split object into key-value pairs
+      .pairs()
+      # parse the key into a float - this will be the position of the keyframe
+      .map ([timeString, data]) -> [(parseFloat timeString), data]
+      # add all of the keyframes to the new timeline
+      .reduce ((tl, [p, d]) ->
+        KeyframeTimeline.addKeyframe tl, p, d),
+        (new KeyframeTimeline length)
+
+
+  @reducer: (timeline, data, changes) -> _objArith data, changes
+
+
+  @progress: (timeline, progress, data) ->
+    idx = _immutableSortedIndex timeline.keyframes, {position: progress},
+      compareValue: _.property 'position'
+    switch idx
+      when 0, timeline.keyframes.size
+        # extrapolate
+        throw new Error 'Must, not, extrapolate'
+      else
+        [lower, upper] = [ (timeline.keyframes.get (idx - 1))
+                         , (timeline.keyframes.get idx) ]
+        tween = _objTween lower.data, upper.data, (progress - lower.position)
+        # _objArith tween, data
+
+
+  @addKeyframe: (timeline, position, data) ->
+    _.assign {}, timeline,
+      keyframes:
+        timeline.keyframes
+          .push position: position, data: data
+          .sortBy _.property 'position'
+
+
+  @getKeyframe: (timeline, idx) -> timeline.keyframes.get idx
+
+
+  @getKeyframePosition: (idx) -> (timeline.keyframes.get idx).position
+
+  @getKeyframeData: (idx) -> (timeline.keyframes.get idx).data
+
+
+### Helpers ###
 
 # if `element` was to be inserted into `list` and sorted, what would `element`'s
 #   index be?
@@ -59,57 +114,6 @@ _objArith = (randl, randr, rator = _.add) ->
 
 
 
-
-class KeyframeTimeline
-  @type: 'KeyframeTimeline'
-
-  constructor: (@length, @keyframes = Immutable.List()) ->
-    @type = KeyframeTimeline.type
-
-
-  @withKeyframes: (length, keyframesObj) ->
-    _ keyframesObj
-      # split object into key-value pairs
-      .pairs()
-      # parse the key into a float - this will be the position of the keyframe
-      .map ([timeString, data]) -> [(parseFloat timeString), data]
-      # add all of the keyframes to the new timeline
-      .reduce ((tl, [p, d]) ->
-        KeyframeTimeline.addKeyframe tl, p, d),
-        (new KeyframeTimeline length)
-
-
-  @reducer: (timeline, data, changes) -> _objArith data, changes
-
-
-  @progress: (timeline, progress, data) ->
-    idx = _immutableSortedIndex timeline.keyframes, {position: progress},
-      compareValue: _.property 'position'
-    switch idx
-      when 0, timeline.keyframes.size
-        # extrapolate
-        throw new Error 'Must, not, extrapolate'
-      else
-        [lower, upper] = [ (timeline.keyframes.get (idx - 1))
-                         , (timeline.keyframes.get idx) ]
-        tween = _objTween lower.data, upper.data, (progress - lower.position)
-        # _objArith tween, data
-
-
-  @addKeyframe: (timeline, position, data) ->
-    _.assign {}, timeline,
-      keyframes:
-        timeline.keyframes
-          .push position: position, data: data
-          .sortBy _.property 'position'
-
-
-  @getKeyframe: (timeline, idx) -> timeline.keyframes.get idx
-
-
-  @getKeyframePosition: (idx) -> (timeline.keyframes.get idx).position
-
-  @getKeyframeData: (idx) -> (timeline.keyframes.get idx).data
 
 
 module.exports = KeyframeTimeline

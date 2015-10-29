@@ -3,6 +3,7 @@ updeep = require 'updeep'
 k = require '../ActionTypes'
 mapAssign = require '../util/mapAssign'
 addChildReducers = require '../util/addChildReducers'
+Timelines = require '../model/timelines/Timelines'
 
 reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
   switch action.type
@@ -15,40 +16,12 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
       {id, timeline} = _.defaults action.data,
         id: "timeline-#{state._spawnedCount}"
 
-      # changes =
-      #   dict: {}
-      #   _spawnedCount: state._spawnedCount + 1
-      # # new entity
-      # changes.dict[id] = timeline
-      # updeep changes, state
-
-      timeline.id = id
-
       change = {}
-      change[id] = timeline
+      change[id] = _.assign {}, timeline, id: id
 
       _.assign {}, state,
         dict: _.assign {}, state.dict,
           change
-
-    # when k.AddTimeline
-    #   {id, length, shouldLoop} = _.defaults action.data,
-    #     id: "timeline-#{state._spawnedCount}"
-    #     length: 1
-    #     shouldLoop: false
-
-    #   changes =
-    #     dict: {}
-    #     _spawnedCount: state._spawnedCount + 1
-    #   # new entity
-    #   changes.dict[id] =
-    #     id: id
-    #     length: length
-    #     shouldLoop: shouldLoop
-    #     triggers: []
-    #     mappings: []
-
-    #   updeep changes, state
 
 
     when k.AddTrigger
@@ -68,8 +41,8 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
     when k.SetTimelineLoop
       {timeline, shouldLoop} = action.data
       mapAssign (_.cloneDeep state),
-        "dict.#{timeline}.shouldLoop",
-        () -> shouldLoop
+        "dict.#{timeline}",
+        (t) -> Timelines.setLoop t, shouldLoop
 
     else state
 

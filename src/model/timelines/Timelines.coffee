@@ -1,6 +1,7 @@
 _ = require 'lodash'
-base = require '../timeline'
-timelines = [ require './KeyframeTimeline' ]
+base = require './Timeline'
+timelines = [ require './KeyframeTimeline'
+              require './GenericTimeline' ]
 vtable = require '../../util/vtable'
 
 ###
@@ -12,9 +13,6 @@ extensions = timelines.reduce ((o, t) ->
   o[base.typeOf t] = t
   return o), {}
 
-table = vtable (({type}) -> type), base, extensions
+table = vtable base.typeOf, base, extensions
 
-module.exports = _.extend table,
-  Reducers:
-    sum: 'sum'    
-
+module.exports = table
