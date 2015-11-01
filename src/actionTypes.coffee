@@ -1,38 +1,16 @@
 actions = [
-  # Adds a new trigger to `timeline` with specified `position` and `action`. The
-  #   `action` function expects the id of the invoking entity as an argument.
-  #
-  #   timeline: String
-  #   position: Float
-  #   action: Function
-  'AddTrigger'
-
-  # Adds a new `mapping` function to a `timeline`. A `mapping` function modifies
-  #   an entity's `data` field, based on an attached `timeline`'s progress.
-  # The `mapping` function expects four arguments:
-  #   progress: Float - the timeline's updated progress
-  #   entity: the id of the invoking entity
-  #   data: the current `data` field of the invoking entity
-  # The `mapping` function should return an object of changes to the existing
-  #   `data` field.
-  #
-  #  timeline: String
-  #  mapping: Function
-  'AddMapping'
-
   # Adds a new entity, with an optional initial `data` field and optional `name`
   #   field.
   #
+  #   [id: String]          # if not supplied, will auto-generate
+  #   [name: String]
   #   initialData: Object
-  #   name: String
   'AddEntity'
 
-  # Adds a new timeline with the provided `length`, and optionally whether the
-  #   timeline `shouldLoop`.
+  # Adds the specified timeline to the database.
   #
-  #   length: Number
-  #   shouldLoop: Boolean # TODO: Does it make sense to have this loop parameter?
-  #                       #       Seems like it should just remain an action.
+  #   [id: String]
+  #   timeline: Timeline
   'AddTimeline'
 
   # Set a timeline to loop or not loop.
@@ -43,17 +21,31 @@ actions = [
 
   # Attaches the `entity` with the provided id to the `timeline` with the
   #   provided timeline id.
+  # Provides support for optionally precise placement of timeline into the
+  #   `Entity's` `attachedTimelines` stack. The `stackPosition` parameter
+  #   indicates the index at which to insert the new timeline relation. A
+  #   `stackPosition` of 0 means that the relation will be pushed onto the head
+  #   (top) of the stack.
   #
   #   entity: String
   #   timeline: String
+  #   [progress: Number = 0]
+  #   [stackPosition: Number = 0]
   'AttachEntityToTimeline'
 
-  # Updates `entity`'s `data` property with `changes` (which are applied to the
-  #   existing `data` via `updeep`).
+  # TODO
+  # Rearrange an `Entity`'s attached timeline stack.
   #
   #   entity: String
-  #   changes: Object
-  'UpdateEntityData'
+  #   timeline: String
+  #   moveToIndex: Integer
+  'RearrangeAttachedTimelines'
+
+  # Sets the `localData` property of the entity with id `entity` to `localData`.
+  #
+  #   entity: String
+  #   localData: Object
+  'SetEntityLocalData'
 
   # Progress the `timeline` on `entity` by `delta`.
   #
