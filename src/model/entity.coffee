@@ -39,6 +39,9 @@ class Entity extends Model
 
   @getLocalData: (entity) -> entity.localData
 
+  @getAttachedTimeline: (entity, timelineId) ->
+    _.find entity.attachedTimelines, timeline: timelineId
+
   @getAttachedTimelines: (entity) -> entity.attachedTimelines
 
   @isAttachedToTimeline: (entity, timelineId) ->
@@ -49,11 +52,14 @@ class Entity extends Model
     return tl?.progress
 
 
-  @attachTimeline: (entity, timeline, progress) ->
+  @attachTimeline: (entity, timeline, progress, stackPosition = 0) ->
     timelineRelation =
       timeline: timeline.id
       progress: progress
+
     _.assign {}, entity,
-      attachedTimelines: [entity.attachedTimelines..., timelineRelation]
+      attachedTimelines: [ entity.attachedTimelines[0...stackPosition]...
+                           timelineRelation
+                           entity.attachedTimelines[stackPosition...]... ]
 
 module.exports = Entity

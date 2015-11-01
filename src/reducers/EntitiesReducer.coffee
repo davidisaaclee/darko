@@ -6,6 +6,19 @@ addChildReducers = require '../util/addChildReducers'
 
 Entity = require '../model/Entity'
 
+editEntity = (state, entityId, proc) ->
+  entity = state.dict[entityId]
+
+  if entity?
+    changes = {}
+    changes[entityId] = proc entity
+    
+    _.assign {}, state,
+      dict: _.assign {}, state.dict, changes
+  else
+    throw new Error "Attempted to update non-existant entity #{entityId}."
+    return state
+
 reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
   switch action.type
     when k.AddEntity
@@ -24,18 +37,16 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
 
       updeep changes, state
 
-    when k.UpdateEntityData
-      {entity, changes} = action.data
 
-      if state.dict[entity]?
-        stateChanges = dict: {}
-        stateChanges.dict[entity] =
-          data: changes
+    # Sets the `localData` property of the entity with id `entity` to `localData`.
+    #
+    #   entity: String
+    #   localData: Object
+    when k.SetEntityLocalData
+      {entity, localData} = action.data
 
-        updeep stateChanges, state
-
-      else
-        throw new Error "Attempted to update non-existant entity #{entity}."
+      editEntity state, entity, (e) ->
+        _.assign {}, e, localData: localData
 
     else state
 

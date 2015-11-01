@@ -25,7 +25,7 @@ class Timeline extends Model
     _.assign {}, timeline,
       shouldLoop: shouldLoop
 
-  @reducer: (timeline, data, changes) ->
+  @reducer: (timeline) -> (data, changes) ->
     console.warn 'Timeline should override Timeline.reducer: ', timeline
 
   @progress: (timeline, progress, data) ->

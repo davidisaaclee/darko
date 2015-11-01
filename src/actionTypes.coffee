@@ -21,18 +21,31 @@ actions = [
 
   # Attaches the `entity` with the provided id to the `timeline` with the
   #   provided timeline id.
+  # Provides support for optionally precise placement of timeline into the
+  #   `Entity's` `attachedTimelines` stack. The `stackPosition` parameter
+  #   indicates the index at which to insert the new timeline relation. A
+  #   `stackPosition` of 0 means that the relation will be pushed onto the head
+  #   (top) of the stack.
   #
   #   entity: String
   #   timeline: String
   #   [progress: Number = 0]
+  #   [stackPosition: Number = 0]
   'AttachEntityToTimeline'
 
-  # Updates `entity`'s `data` property with `changes` (which are applied to the
-  #   existing `data` via `updeep`).
+  # TODO
+  # Rearrange an `Entity`'s attached timeline stack.
   #
   #   entity: String
-  #   changes: Object
-  'UpdateEntityData'
+  #   timeline: String
+  #   moveToIndex: Integer
+  'RearrangeAttachedTimelines'
+
+  # Sets the `localData` property of the entity with id `entity` to `localData`.
+  #
+  #   entity: String
+  #   localData: Object
+  'SetEntityLocalData'
 
   # Progress the `timeline` on `entity` by `delta`.
   #

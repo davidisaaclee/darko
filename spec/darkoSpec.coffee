@@ -16,6 +16,7 @@ GenericTimeline = require '../src/model/timelines/GenericTimeline'
 Timelines = require '../src/model/timelines/Timelines'
 
 ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
+clamp = require '../src/util/clamp'
 # assertPure = require './util/assertPure'
 assertPure = (__, p) -> do p # silly
 
@@ -145,6 +146,60 @@ describe 'SceneReducer:', () ->
     expect hd.progress
       .toBe 0
 
+  # this doesn't actually test that timelines reduce in order...
+  it 'AttachEntityToTimeline (stack manipulation)', () ->
+    timeline1 = new GenericTimeline 1, _.identity
+    timeline2 = new GenericTimeline 2, _.identity
+    timeline3 = new GenericTimeline 3, _.identity
+
+    entityKey = 'myEntity'
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AddEntity
+        data:
+          id: entityKey
+      @store.dispatch
+        type: k.AddTimeline
+        data:
+          id: 'timeline1'
+          timeline: timeline1
+      @store.dispatch
+        type: k.AddTimeline
+        data:
+          id: 'timeline2'
+          timeline: timeline2
+      @store.dispatch
+        type: k.AddTimeline
+        data:
+          id: 'timeline3'
+          timeline: timeline3
+
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: entityKey
+          timeline: 'timeline1'
+          stackPosition: 0
+      @store.dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: entityKey
+          timeline: 'timeline2'
+          stackPosition: 0
+      @store.dispatch
+        type: k.AttachEntityToTimeline
+        data:
+          entity: entityKey
+          timeline: 'timeline3'
+          stackPosition: 1
+
+    scene = @store.getState()
+    entity = Scene.getEntity scene, entityKey
+    expect _.map (Entity.getAttachedTimelines entity), 'timeline'
+      .toEqual ['timeline2', 'timeline3', 'timeline1']
+
 
 
 describe 'darko', () ->
@@ -157,9 +212,10 @@ describe 'darko', () ->
     @store = createStore hpReducer
 
     # Populate with a timeline and entity.
-    myTimeline = new GenericTimeline 2, (progress, data) ->
+    @timelineFn = (progress, data) ->
       _.assign {}, data,
         foo: progress * 2
+    myTimeline = new GenericTimeline 2, @timelineFn
 
     @timelineId = 'myTimeline'
     @entityId = 'myEntity'
@@ -302,296 +358,140 @@ describe 'darko', () ->
       .toBe 0.5
 
 
-  xit 'can add new triggers', () ->
-    expect @store.getState().timelines.dict['timeline-0'].triggers.length
-      .toBe 0
+  it 'updates entity data', () ->
+    delta = 1
+    preData = Entity.getData (Scene.getEntity @store.getState(), @entityId)
 
-    triggerActionSpy = (progress, id, data) -> data
-    triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
-      .and.callThrough()
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AddTrigger
-        data:
-          timeline: 'timeline-0'
-          position: 0.6
-          action: triggerActionSpy
-
-    expect @store.getState().timelines.dict['timeline-0'].triggers.length
-      .toBe 1
-    expect @store.getState().timelines.dict['timeline-0'].triggers[0]
-      .toMatchObject
-        position: 0.6
-        action: triggerActionSpy
-
-    expect triggerActionSpy.calls.count()
-      .toBe 0
-
-
-  xit 'should trigger events when passed over', () ->
-    triggerActionSpy = (progress, entityId, data) ->
-      _.assign {}, data,
-        foo: data.foo + 1
-    triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
-      .and.callThrough()
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            foo: 0
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AddTrigger
-        data:
-          timeline: 'timeline-0'
-          position: 0.6
-          action: triggerActionSpy
-
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 1
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 0.5
-    expect triggerActionSpy.calls.count()
-      .toBe 0
+    # console.log Scene.getEntity @store.getState(), @entityId
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.ProgressEntityTimeline
         data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 1
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 1
-    expect triggerActionSpy.calls.count()
-      .toBe 1
-    expect triggerActionSpy.calls.mostRecent().args
-      .toEqual [1, 'entity-0', foo: 0]
-    expect @store.getState().entities.dict['entity-0'].data
-      .toMatchObject
-        foo: 1
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: -1
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 0.5
-    expect triggerActionSpy.calls.count()
-      .toBe 2
-    expect triggerActionSpy.calls.mostRecent().args
-      .toEqual [0.5, 'entity-0', foo: 1]
-    expect @store.getState().entities.dict['entity-0'].data
-      .toMatchObject
-        foo: 2
-
-
-  xit 'should respect trigger order within progress change', () ->
-    triggerActionFn = (callId) -> (progress, entityId, data) ->
-      _.assign {}, data,
-        callOrder: [data.callOrder..., callId]
-    triggerActionSpy0 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy0')
-      .and.callThrough()
-    triggerActionSpy1 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy1')
-      .and.callThrough()
-    triggerActionSpy2 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy2')
-      .and.callThrough()
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            callOrder: []
-
-      @store.dispatch
-        type: k.AddTrigger
-        data:
-          timeline: 'timeline-0'
-          position: 0.6
-          action: triggerActionSpy0
-
-      @store.dispatch
-        type: k.AddTrigger
-        data:
-          timeline: 'timeline-0'
-          position: 0.65
-          action: triggerActionSpy1
-
-      @store.dispatch
-        type: k.AddTrigger
-        data:
-          timeline: 'timeline-0'
-          position: 0.62
-          action: triggerActionSpy2
-
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 2
-
-    expect @store.getState().entities.dict['entity-0'].data.callOrder
-      .toEqual ['spy0', 'spy2', 'spy1']
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            callOrder: []
-
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: -1
-
-    expect @store.getState().entities.dict['entity-0'].data.callOrder
-      .toEqual ['spy1', 'spy2', 'spy0']
-
-
-  # TODO: Uncertain about this spec now. Maybe xit should be changed to edge
-  #       detection? Or maybe keep xit simple.
-  xit 'should trigger predicate-driven events', () ->
-    triggerActionSpy = (progress, id, data) -> data
-    triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
-      .and.callThrough()
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AddTrigger
-        data:
-          timeline: 'timeline-0'
-          position: (progress, prevProgress) ->
-            (progress isnt prevProgress) and
-            (progress % 0.2) is 0
-          action: triggerActionSpy
-
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 0.2
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 0.1
-    expect triggerActionSpy.calls.count()
-      .toBe 0
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 0.2
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 0.2
-    expect triggerActionSpy.calls.count()
-      .toBe 1
-    expect triggerActionSpy.calls.mostRecent().args
-      .toEqual [0.2, 'entity-0', @store.getState().entities.dict['entity-0'].data]
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 0.2
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 0.3
-    expect triggerActionSpy.calls.count()
-      .toBe 1
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 0.2
-
-    expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
-      .toBeCloseTo 0.4
-    expect triggerActionSpy.calls.count()
-      .toBe 2
-    expect triggerActionSpy.calls.mostRecent().args
-      .toEqual [0.4, 'entity-0', @store.getState().entities.dict['entity-0'].data]
-
-
-  xit 'can map values', () ->
-    expect @store.getState().timelines.dict['timeline-0'].mappings.length
-      .toBe 0
-
-    mappingFn = (progress, entityId, data) ->
-      progress: progress
-    mappingFn = jasmine.createSpy 'mappingFn', mappingFn
-      .and.callThrough()
-
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AddMapping
-        data:
-          timeline: 'timeline-0'
-          mapping: mappingFn
-
-    expect @store.getState().timelines.dict['timeline-0'].mappings.length
-      .toBe 1
-    expect mappingFn.calls.count()
-      .toBe 0
-
-    delta = 1.7
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressEntityTimeline
-        data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
+          entity: @entityId
+          timeline: @timelineId
           delta: delta
 
     expectedProgress =
-      delta / @store.getState().timelines.dict['timeline-0'].length
+      delta / (Scene.getTimeline @store.getState(), @timelineId).length
+    expectedData = @timelineFn expectedProgress, preData
 
-    expect mappingFn.calls.count()
-      .toBe 1
-    expect mappingFn.calls.mostRecent().args
-      .toEqual [expectedProgress, 'entity-0', {}]
-    expect @store.getState().entities.dict['entity-0'].data.progress
-      .toBe expectedProgress
+    expect Entity.getData Scene.getEntity @store.getState(), @entityId
+      .toEqual expectedData
+
+    delta2 = 1.2
+    preData = Entity.getData (Scene.getEntity @store.getState(), @entityId)
+    assertPure (() => @store.getState()), () =>
+      @store.dispatch
+        type: k.ProgressEntityTimeline
+        data:
+          entity: @entityId
+          timeline: @timelineId
+          delta: delta2
+
+    ###
+    Timeline length: 2
+    Deltas: 1 + 1.2 = 2.2
+    Progressed = Deltas / Timeline length = 1.1
+      (Timeline doesn't loop, so should clamp to 1.)
+    ###
+
+    ent = Scene.getEntity @store.getState(), @entityId
+    timelineLength = (Scene.getTimeline @store.getState(), @timelineId).length
+    deltas = delta + delta2
+    expectedProgress =
+      deltas / timelineLength
+    expectedProgress = clamp 0, 1, expectedProgress
+    expectedData = @timelineFn expectedProgress, preData
+    expect Entity.getData ent
+      .toEqual expectedData
 
     assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.ProgressEntityTimeline
         data:
-          entity: 'entity-0'
-          timeline: 'timeline-0'
-          delta: 1
+          entity: @entityId
+          timeline: @timelineId
+          delta: delta2
+    ent = Scene.getEntity @store.getState(), @entityId
+    timelineLength = (Scene.getTimeline @store.getState(), @timelineId).length
+    expectedProgress =
+      (delta + delta2) / timelineLength
+    expectedProgress =
+      clamp 0, 1, expectedProgress
+    expect (Entity.getAttachedTimeline ent, @timelineId).progress
+      .toEqual expectedProgress
+    expectedData = @timelineFn expectedProgress, preData
+    expect Entity.getData ent
+      .toEqual expectedData
 
-    expect @store.getState().entities.dict['entity-0'].data.progress
-      .toBe 1 # clamped
+  it 'SetEntityLocalData', () ->
+    scene = @store.getState()
+    entity = Scene.getEntity scene, @entityId
+    expect Entity.getLocalData entity
+      .toEqual {}
+
+    @store.dispatch
+      type: k.SetEntityLocalData
+      data:
+        entity: @entityId
+        localData:
+          foo: 3
+
+    scene = @store.getState()
+    entity = Scene.getEntity scene, @entityId
+    expect Entity.getLocalData entity
+      .toEqual foo: 3
+
+    @store.dispatch
+      type: k.AddEntity
+      data:
+        id: 'michael'
+        initialData:
+          frog: 'drink'
+
+    @store.dispatch
+      type: k.SetEntityLocalData
+      data:
+        entity: @entityId
+        localData:
+          foo: 4
+
+    scene = @store.getState()
+    entity = Scene.getEntity scene, @entityId
+    expect Entity.getLocalData entity
+      .toEqual foo: 4
+
+    # michael = Scene.getEntity scene, 'michael'
+    # expect Entity.getLocalData michael
+    #   .toEqual frog: 'drink'
+
+    # @store.dispatch
+    #   type: k.SetEntityLocalData
+    #   data:
+    #     entity: 'michael'
+    #     localData:
+    #       foo: 1
+
+    # scene = @store.getState()
+    # michael = Scene.getEntity scene, 'michael'
+    # expect Entity.getLocalData michael
+    #   .toEqual foo: 1
+
+    # @store.dispatch
+    #   type: k.SetEntityLocalData
+    #   data:
+    #     entity: @entityId
+    #     localData:
+    #       bar: true
+
+    # scene = @store.getState()
+    # entity = Scene.getEntity scene, @entityId
+    # expect Entity.getLocalData entity
+    #   .toEqual bar: true
+    # michael = Scene.getEntity scene, 'michael'
+    # expect Entity.getLocalData michael
+    #   .toEqual foo: 1
 
 
   xit 'can update entity data', () ->
@@ -722,3 +622,254 @@ describe 'darko', () ->
       .toMatchObject
         progress: 0.5
         timeline: 'timeline-0'
+
+
+
+
+
+
+
+
+  ###
+  here be dead spec
+  ###
+
+
+  # xit 'can add new triggers', () ->
+  #   expect @store.getState().timelines.dict['timeline-0'].triggers.length
+  #     .toBe 0
+
+  #   triggerActionSpy = (progress, id, data) -> data
+  #   triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
+  #     .and.callThrough()
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.AddTrigger
+  #       data:
+  #         timeline: 'timeline-0'
+  #         position: 0.6
+  #         action: triggerActionSpy
+
+  #   expect @store.getState().timelines.dict['timeline-0'].triggers.length
+  #     .toBe 1
+  #   expect @store.getState().timelines.dict['timeline-0'].triggers[0]
+  #     .toMatchObject
+  #       position: 0.6
+  #       action: triggerActionSpy
+
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 0
+
+
+  # xit 'should trigger events when passed over', () ->
+  #   triggerActionSpy = (progress, entityId, data) ->
+  #     _.assign {}, data,
+  #       foo: data.foo + 1
+  #   triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
+  #     .and.callThrough()
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           foo: 0
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.AddTrigger
+  #       data:
+  #         timeline: 'timeline-0'
+  #         position: 0.6
+  #         action: triggerActionSpy
+
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 1
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 0.5
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 0
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 1
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 1
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 1
+  #   expect triggerActionSpy.calls.mostRecent().args
+  #     .toEqual [1, 'entity-0', foo: 0]
+  #   expect @store.getState().entities.dict['entity-0'].data
+  #     .toMatchObject
+  #       foo: 1
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: -1
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 0.5
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 2
+  #   expect triggerActionSpy.calls.mostRecent().args
+  #     .toEqual [0.5, 'entity-0', foo: 1]
+  #   expect @store.getState().entities.dict['entity-0'].data
+  #     .toMatchObject
+  #       foo: 2
+
+
+  # xit 'should respect trigger order within progress change', () ->
+  #   triggerActionFn = (callId) -> (progress, entityId, data) ->
+  #     _.assign {}, data,
+  #       callOrder: [data.callOrder..., callId]
+  #   triggerActionSpy0 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy0')
+  #     .and.callThrough()
+  #   triggerActionSpy1 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy1')
+  #     .and.callThrough()
+  #   triggerActionSpy2 = jasmine.createSpy 'TriggerAction', (triggerActionFn 'spy2')
+  #     .and.callThrough()
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           callOrder: []
+
+  #     @store.dispatch
+  #       type: k.AddTrigger
+  #       data:
+  #         timeline: 'timeline-0'
+  #         position: 0.6
+  #         action: triggerActionSpy0
+
+  #     @store.dispatch
+  #       type: k.AddTrigger
+  #       data:
+  #         timeline: 'timeline-0'
+  #         position: 0.65
+  #         action: triggerActionSpy1
+
+  #     @store.dispatch
+  #       type: k.AddTrigger
+  #       data:
+  #         timeline: 'timeline-0'
+  #         position: 0.62
+  #         action: triggerActionSpy2
+
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 2
+
+  #   expect @store.getState().entities.dict['entity-0'].data.callOrder
+  #     .toEqual ['spy0', 'spy2', 'spy1']
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           callOrder: []
+
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: -1
+
+  #   expect @store.getState().entities.dict['entity-0'].data.callOrder
+  #     .toEqual ['spy1', 'spy2', 'spy0']
+
+
+  # # TODO: Uncertain about this spec now. Maybe xit should be changed to edge
+  # #       detection? Or maybe keep xit simple.
+  # xit 'should trigger predicate-driven events', () ->
+  #   triggerActionSpy = (progress, id, data) -> data
+  #   triggerActionSpy = jasmine.createSpy 'TriggerAction', triggerActionSpy
+  #     .and.callThrough()
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.AddTrigger
+  #       data:
+  #         timeline: 'timeline-0'
+  #         position: (progress, prevProgress) ->
+  #           (progress isnt prevProgress) and
+  #           (progress % 0.2) is 0
+  #         action: triggerActionSpy
+
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 0.2
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 0.1
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 0
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 0.2
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 0.2
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 1
+  #   expect triggerActionSpy.calls.mostRecent().args
+  #     .toEqual [0.2, 'entity-0', @store.getState().entities.dict['entity-0'].data]
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 0.2
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 0.3
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 1
+
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressEntityTimeline
+  #       data:
+  #         entity: 'entity-0'
+  #         timeline: 'timeline-0'
+  #         delta: 0.2
+
+  #   expect @store.getState().entities.dict['entity-0'].attachedTimelines[0].progress
+  #     .toBeCloseTo 0.4
+  #   expect triggerActionSpy.calls.count()
+  #     .toBe 2
+  #   expect triggerActionSpy.calls.mostRecent().args
+  #     .toEqual [0.4, 'entity-0', @store.getState().entities.dict['entity-0'].data]

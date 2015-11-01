@@ -21,7 +21,7 @@ class KeyframeTimeline extends Timeline
         (new KeyframeTimeline length)
 
 
-  @reducer: (timeline, data, changes) -> _objArith data, changes
+  @reducer: (timeline) -> (data, changes) -> _objArith data, changes
 
 
   @progress: (timeline, progress, data) ->

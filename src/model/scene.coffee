@@ -65,6 +65,7 @@ class Scene extends Model
   @progressTimeline: (scene, timelineId, delta, entities = _.values entityDict) ->
     timeline = Scene.getTimeline scene, timelineId
     entityDict = scene.entities.dict
+    incrProgress = Scene.incrementProgressOnTimeline scene
 
     _.assign {}, scene,
       entities: _.assign {}, scene.entities,
@@ -73,11 +74,8 @@ class Scene extends Model
             # map into list of actual entities
             .map _.propertyOf entityDict
             # update all progresses
-            # .map (e) -> Entity.incrementProgressOnTimeline e, delta, timelineId
-            .map (e) ->
-              (Scene.incrementProgressOnTimeline scene) e, delta, timelineId
+            .map (e) -> incrProgress e, delta, timelineId
             # recalculate all changed entity data
-            # .map Entity.calculateData
             .map Scene.calculateEntityData scene
             # build back into a dictionary
             .reduce (buildObjectWithPropertyKey 'id'), {}
@@ -124,13 +122,15 @@ class Scene extends Model
 
 
   @calculateEntityData = (scene) -> (entity) ->
-    reduction = (data, elm) ->
-      timeline = Scene.getTimeline scene, elm.timeline
-      reducer = (a, b) -> Timelines.reducer timeline, a, b
-      reducer data, (Timelines.progress timeline, elm.progress)
-
     _.assign {}, entity,
-      data: entity.attachedTimelines.reduce reduction, entity.localData
+      data:
+        entity.attachedTimelines
+          .map ({timeline, progress}) ->
+            timelineObj = Scene.getTimeline scene, timeline
 
+            changes: Timelines.progress timelineObj, progress
+            reducer: Timelines.reducer timelineObj
+          .reduce ((data, {changes, reducer}) ->
+            reducer data, changes), entity.localData
 
 module.exports = Scene
