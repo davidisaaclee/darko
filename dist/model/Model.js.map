@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "Model.js",
+  "sourceRoot": "../..",
+  "sources": [
+    "src/model/Model.coffee"
+  ],
+  "names": [],
+  "mappings": ";AACA;AAAA;;;;GAAA;AAAA;AAAA;AAAA,MAAA,KAAA;;AAAA,EAKM;uBAAN;;iBAAA;;MALA,CAAA;;AAAA,EAOA,MAAM,CAAC,OAAP,GAAiB,KAPjB,CAAA;AAAA"
+}

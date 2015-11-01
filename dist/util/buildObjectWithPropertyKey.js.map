@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "buildObjectWithPropertyKey.js",
+  "sourceRoot": "../..",
+  "sources": [
+    "src/util/buildObjectWithPropertyKey.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;AAAA,MAAA,0BAAA;;AAAA,EAAA,MAAM,CAAC,OAAP,GAAiB,0BAAA,GAA6B,SAAC,OAAD,GAAA;WAC5C,SAAC,GAAD,EAAM,OAAN,GAAA;AACE,MAAA,GAAI,CAAA,OAAQ,CAAA,OAAA,CAAR,CAAJ,GAAwB,OAAxB,CAAA;AACA,aAAO,GAAP,CAFF;IAAA,EAD4C;EAAA,CAA9C,CAAA;AAAA"
+}
