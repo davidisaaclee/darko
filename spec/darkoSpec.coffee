@@ -627,36 +627,42 @@ describe 'darko', () ->
     expect Entity.getLocalData entity
       .toEqual foo: 4
 
-    # michael = Scene.getEntity scene, 'michael'
-    # expect Entity.getLocalData michael
-    #   .toEqual frog: 'drink'
+    michael = Scene.getEntity scene, 'michael'
+    expect Entity.getLocalData michael
+      .toEqual frog: 'drink'
 
-    # @store.dispatch
-    #   type: k.SetEntityLocalData
-    #   data:
-    #     entity: 'michael'
-    #     localData:
-    #       foo: 1
+    @store.dispatch
+      type: k.SetEntityLocalData
+      data:
+        entity: 'michael'
+        localData:
+          foo: 1
 
-    # scene = @store.getState()
-    # michael = Scene.getEntity scene, 'michael'
-    # expect Entity.getLocalData michael
-    #   .toEqual foo: 1
+    scene = @store.getState()
+    michael = Scene.getEntity scene, 'michael'
+    expect Entity.getLocalData michael
+      .toEqual foo: 1
 
-    # @store.dispatch
-    #   type: k.SetEntityLocalData
-    #   data:
-    #     entity: @entityId
-    #     localData:
-    #       bar: true
+    @store.dispatch
+      type: k.SetEntityLocalData
+      data:
+        entity: @entityId
+        localData:
+          bar:
+            left: 'window'
+            right: 'wall'
 
-    # scene = @store.getState()
-    # entity = Scene.getEntity scene, @entityId
-    # expect Entity.getLocalData entity
-    #   .toEqual bar: true
-    # michael = Scene.getEntity scene, 'michael'
-    # expect Entity.getLocalData michael
-    #   .toEqual foo: 1
+
+    scene = @store.getState()
+    entity = Scene.getEntity scene, @entityId
+    expect Entity.getLocalData entity
+      .toEqual \
+        bar:
+          left: 'window'
+          right: 'wall'
+    michael = Scene.getEntity scene, 'michael'
+    expect Entity.getLocalData michael
+      .toEqual foo: 1
 
 
   # xit 'can update entity data', () ->
