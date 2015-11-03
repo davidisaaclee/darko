@@ -2,7 +2,7 @@
 (function() {
   var actions;
 
-  actions = ['AddEntity', 'AddTimeline', 'SetTimelineLoop', 'AttachEntityToTimeline', 'RearrangeAttachedTimelines', 'SetEntityLocalData', 'ProgressEntityTimeline', 'ProgressTimeline'];
+  actions = ['AddEntity', 'RemoveEntity', 'AddTimeline', 'RemoveTimeline', 'SetTimelineLoop', 'AttachEntityToTimeline', 'DetachEntityFromTimeline', 'RearrangeAttachedTimelines', 'SetEntityLocalData', 'ProgressEntityTimeline', 'ProgressTimeline'];
 
   module.exports = actions.reduce((function(acc, actionType) {
     acc[actionType] = actionType;

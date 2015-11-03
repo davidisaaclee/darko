@@ -29,7 +29,7 @@
   buildObjectWithPropertyKey = require('../util/buildObjectWithPropertyKey');
 
   reducer = function(state, action) {
-    var delta, entity, progress, ref, ref1, ref2, stackPosition, state_, timeline, timelineObj;
+    var delta, entity, progress, ref, ref1, ref2, ref3, stackPosition, state_, timeline, timelineObj;
     if (state == null) {
       state = {};
     }
@@ -54,6 +54,13 @@
           }
         });
         return Scene.progressTimeline(state_, timeline, 0, [entity]);
+      case k.DetachEntityFromTimeline:
+        ref3 = action.data, entity = ref3.entity, timeline = ref3.timeline;
+        return _.assign({}, state, {
+          entities: state.entities.update(entity, function(e) {
+            return Entity.detachTimeline(e, timeline);
+          })
+        });
       default:
         return state;
     }
