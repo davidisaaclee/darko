@@ -1,11 +1,12 @@
 _ = require 'lodash'
 updeep = require 'updeep'
+Immutable = require 'immutable'
 k = require '../ActionTypes'
 mapAssign = require '../util/mapAssign'
 addChildReducers = require '../util/addChildReducers'
 Timelines = require '../model/timelines/Timelines'
 
-reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
+reducer = (state = Immutable.Map(), action) ->
   switch action.type
 
     # Adds the specified timeline to the database.
@@ -16,33 +17,27 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
       {id, timeline} = _.defaults action.data,
         id: "timeline-#{state._spawnedCount}"
 
-      change = {}
-      change[id] = _.assign {}, timeline, id: id
-
-      _.assign {}, state,
-        dict: _.assign {}, state.dict,
-          change
+      timelineWithId = _.assign {}, timeline, id: id
+      state.set id, timelineWithId
 
 
-    when k.AddTrigger
-      {timeline, position, action} = action.data
-      mapAssign (_.cloneDeep state),
-        "dict.#{timeline}.triggers",
-        (oldTriggers) -> [oldTriggers..., {position: position, action: action}]
+    # when k.AddTrigger
+    #   {timeline, position, action} = action.data
+    #   mapAssign (_.cloneDeep state),
+    #     "dict.#{timeline}.triggers",
+    #     (oldTriggers) -> [oldTriggers..., {position: position, action: action}]
 
 
-    when k.AddMapping
-      {timeline, mapping} = action.data
-      mapAssign (_.cloneDeep state),
-        "dict.#{timeline}.mappings",
-        (oldMappings) -> [oldMappings..., mapping]
+    # when k.AddMapping
+    #   {timeline, mapping} = action.data
+    #   mapAssign (_.cloneDeep state),
+    #     "dict.#{timeline}.mappings",
+    #     (oldMappings) -> [oldMappings..., mapping]
 
 
     when k.SetTimelineLoop
       {timeline, shouldLoop} = action.data
-      mapAssign (_.cloneDeep state),
-        "dict.#{timeline}",
-        (t) -> Timelines.setLoop t, shouldLoop
+      state.update timeline, (t) -> Timelines.setLoop t, shouldLoop
 
     else state
 

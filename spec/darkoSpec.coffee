@@ -35,7 +35,7 @@ describe 'SceneReducer:', () ->
 
 
   it 'AddEntity', () ->
-    expect (Object.keys @store.getState().entities.dict).length
+    expect @store.getState().entities.size
       .toBe 0
 
     assertPure (() => @store.getState()), () =>
@@ -68,6 +68,42 @@ describe 'SceneReducer:', () ->
       .toEqual 'stephenId'
     expect Entity.getName (Scene.getEntity scene, 'stephenId')
       .toEqual 'stephen'
+
+
+  # Removes the entity with the specified ID from the database.
+  #
+  #   id: String
+  xit 'RemoveEntity', () ->
+    @store.dispatch
+      type: k.AddEntity
+      data:
+        id: 'e1'
+        initialData:
+          foo: 4
+    @store.dispatch
+      type: k.AddEntity
+      data:
+        id: 'e2'
+        initialData:
+          foo: 3
+
+    expect (Scene.getAllEntities @store.getState()).length
+      .toBe 2
+
+    @store.dispatch
+      type: k.RemoveEntity
+      data:
+        id: 'e1'
+
+    expect (Scene.getAllEntities @store.getState()).length
+      .toBe 1
+
+    expect (Scene.getEntity @store.getState(), 'e1')
+      .toBeUndefined()
+    expect (Scene.getEntity @store.getState(), 'e2')
+      .toBeDefined()
+    expect Entity.getData (Scene.getEntity @store.getState(), 'e2')
+      .toEqual foo: 3
 
 
   # Adds the specified timeline to the database.

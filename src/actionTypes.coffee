@@ -7,11 +7,22 @@ actions = [
   #   initialData: Object
   'AddEntity'
 
+  # Removes the entity with the specified ID from the database.
+  #
+  #   id: String
+  'RemoveEntity'
+
   # Adds the specified timeline to the database.
   #
   #   [id: String]
   #   timeline: Timeline
   'AddTimeline'
+
+  # TODO
+  # Removes the timeline with the specified ID from the database.
+  #
+  #   id: String
+  'RemoveTimeline'
 
   # Set a timeline to loop or not loop.
   #
@@ -32,6 +43,9 @@ actions = [
   #   [progress: Number = 0]
   #   [stackPosition: Number = 0]
   'AttachEntityToTimeline'
+
+  # TODO
+  'DetachEntityFromTimeline'
 
   # TODO
   # Rearrange an `Entity`'s attached timeline stack.

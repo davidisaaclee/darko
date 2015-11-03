@@ -1,41 +1,30 @@
 _ = require 'lodash'
 updeep = require 'updeep'
+Immutable = require 'immutable'
 k = require '../ActionTypes'
 mapAssign = require '../util/mapAssign'
 addChildReducers = require '../util/addChildReducers'
 
 Entity = require '../model/Entity'
 
-editEntity = (state, entityId, proc) ->
-  entity = state.dict[entityId]
 
-  if entity?
-    changes = {}
-    changes[entityId] = proc entity
-    
-    _.assign {}, state,
-      dict: _.assign {}, state.dict, changes
-  else
-    throw new Error "Attempted to update non-existant entity #{entityId}."
-    return state
-
-reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
+reducer = (state = Immutable.Map(), action) ->
   switch action.type
     when k.AddEntity
       {id, name, initialData} = _.defaults {}, action.data,
         id: "entity-#{state._spawnedCount}"
         name: null
         initialData: {}
+      entity = new Entity id, name, [], initialData
+      state.set id, entity
 
-      changes =
-        dict: {}
-        _spawnedCount: state._spawnedCount + 1
-      changes.dict[id] = new Entity id, name, [], initialData
 
-      if name?
-        changes.dict[id].name = name
-
-      updeep changes, state
+    # Removes the entity with the specified ID from the database.
+    #
+    #   id: String
+    when k.RemoveEntity
+      {id} = action.data
+      state.delete id
 
 
     # Sets the `localData` property of the entity with id `entity` to `localData`.
@@ -44,8 +33,7 @@ reducer = (state = {dict: {}, _spawnedCount: 0}, action) ->
     #   localData: Object
     when k.SetEntityLocalData
       {entity, localData} = action.data
-
-      editEntity state, entity, (e) ->
+      state.update entity, (e) ->
         _.assign {}, e, localData: localData
 
     else state
