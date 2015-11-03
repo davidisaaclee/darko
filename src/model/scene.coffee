@@ -89,9 +89,9 @@ class Scene extends Model
           .map ({timeline, progress}) ->
             timelineObj = Scene.getTimeline scene, timeline
 
-            changes: Timelines.progress timelineObj, progress
+            mutator: (data) -> Timelines.progress timelineObj, progress, data
             reducer: Timelines.reducer timelineObj
-          .reduce ((data, {changes, reducer}) ->
-            reducer data, changes), entity.localData
+          .reduce ((data, {mutator, reducer}) ->
+            reducer data, (mutator data)), Entity.getLocalData entity
 
 module.exports = Scene

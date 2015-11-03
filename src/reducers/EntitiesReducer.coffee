@@ -26,16 +26,6 @@ reducer = (state = Immutable.Map(), action) ->
       {id} = action.data
       state.delete id
 
-
-    # Sets the `localData` property of the entity with id `entity` to `localData`.
-    #
-    #   entity: String
-    #   localData: Object
-    when k.SetEntityLocalData
-      {entity, localData} = action.data
-      state.update entity, (e) ->
-        _.assign {}, e, localData: localData
-
     else state
 
 

@@ -56,10 +56,11 @@ reducer = (state = {}, action) ->
       timelineObj = Scene.getTimeline state, timeline
       state_ = Scene.mutateEntity state, entity, (e) ->
         if not Entity.isAttachedToTimeline e, timeline
-        then Entity.attachTimeline e, timelineObj, progress, stackPosition
+          ent = Entity.attachTimeline e, timelineObj, progress, stackPosition
+          ent = (Scene.calculateEntityData state) ent
         else e
 
-      Scene.progressTimeline state_, timeline, 0, [entity]
+      # Scene.progressTimeline state_, timeline, 0, [entity]
 
 
     # Removes the timeline with the provided id from the list of timelines
@@ -74,6 +75,19 @@ reducer = (state = {}, action) ->
           state.entities.update entity, (e) ->
             Entity.detachTimeline e, timeline
 
+
+    # Sets the `localData` property of the entity with id `entity` to `localData`.
+    #
+    #   entity: String
+    #   localData: Object
+    when k.SetEntityLocalData
+      {entity, localData} = action.data
+      _.assign {}, state,
+        entities:
+          state.entities.update entity, (e) ->
+            newEnt = _.assign {}, e, localData: localData
+            newEnt_ = (Scene.calculateEntityData state) newEnt
+            return newEnt_
 
     else state
 

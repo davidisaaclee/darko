@@ -591,22 +591,30 @@ describe 'darko', () ->
       .toEqual expectedData
 
   it 'SetEntityLocalData', () ->
+    @store.dispatch
+      type: k.AddEntity
+      data:
+        id: 'ld-entity'
+        initialData: {}
+
     scene = @store.getState()
-    entity = Scene.getEntity scene, @entityId
+    entity = Scene.getEntity scene, 'ld-entity'
     expect Entity.getLocalData entity
       .toEqual {}
 
     @store.dispatch
       type: k.SetEntityLocalData
       data:
-        entity: @entityId
+        entity: 'ld-entity'
         localData:
           foo: 3
 
     scene = @store.getState()
-    entity = Scene.getEntity scene, @entityId
+    entity = Scene.getEntity scene, 'ld-entity'
     expect Entity.getLocalData entity
       .toEqual foo: 3
+    expect Entity.getData entity
+      .toEqual Entity.getLocalData entity
 
     @store.dispatch
       type: k.AddEntity
@@ -618,12 +626,12 @@ describe 'darko', () ->
     @store.dispatch
       type: k.SetEntityLocalData
       data:
-        entity: @entityId
+        entity: 'ld-entity'
         localData:
           foo: 4
 
     scene = @store.getState()
-    entity = Scene.getEntity scene, @entityId
+    entity = Scene.getEntity scene, 'ld-entity'
     expect Entity.getLocalData entity
       .toEqual foo: 4
 
@@ -643,18 +651,18 @@ describe 'darko', () ->
     expect Entity.getLocalData michael
       .toEqual foo: 1
 
+    # setting data to objects
     @store.dispatch
       type: k.SetEntityLocalData
       data:
-        entity: @entityId
+        entity: 'ld-entity'
         localData:
           bar:
             left: 'window'
             right: 'wall'
 
-
     scene = @store.getState()
-    entity = Scene.getEntity scene, @entityId
+    entity = Scene.getEntity scene, 'ld-entity'
     expect Entity.getLocalData entity
       .toEqual \
         bar:
@@ -664,6 +672,41 @@ describe 'darko', () ->
     expect Entity.getLocalData michael
       .toEqual foo: 1
 
+    # setting data when timelines are registered
+    ldTimeline = new GenericTimeline 1, (progress, data) ->
+      _.assign {}, data,
+        foo: data.foo + 1
+    @store.dispatch
+      type: k.AddTimeline
+      data:
+        id: 'ldTimeline'
+        timeline: ldTimeline
+    @store.dispatch
+      type: k.AttachEntityToTimeline
+      data:
+        entity: 'michael'
+        timeline: 'ldTimeline'
+
+    # scene = @store.getState()
+    # michael = Scene.getEntity scene, 'michael'
+    # expect Entity.getLocalData michael
+    #   .toEqual foo: 1
+    # expect Entity.getData michael
+    #   .toEqual foo: 2
+
+    # @store.dispatch
+    #   type: k.SetEntityLocalData
+    #   data:
+    #     entity: 'michael'
+    #     localData:
+    #       foo: 2
+
+    # scene = @store.getState()
+    # michael = Scene.getEntity scene, 'michael'
+    # expect Entity.getLocalData michael
+    #   .toEqual foo: 2
+    # expect Entity.getData michael
+    #   .toEqual foo: 3
 
   # xit 'can update entity data', () ->
   #   expect @store.getState().entities.dict['entity-0'].data.color
