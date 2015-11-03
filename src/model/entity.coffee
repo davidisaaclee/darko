@@ -1,4 +1,5 @@
 _ = require 'lodash'
+Immutable = require 'immutable'
 Model = require './Model'
 Timelines = require './timelines/Timelines'
 
@@ -28,7 +29,9 @@ EntityTimelineRelation ::=
   progress: Float
 ###
 class Entity extends Model
-  constructor: (@id, @name, @attachedTimelines, @localData) ->
+  constructor: (@id, @name, @localData, @attachedTimelines = Immutable.List()) ->
+    # calculated data is initially the same as `localData`
+    # TODO: is this true? if `attachedTimelines` is initialized to non-empty?
     @data = _.assign {}, @localData
 
   @getId: (entity) -> entity.id
@@ -40,16 +43,16 @@ class Entity extends Model
   @getLocalData: (entity) -> entity.localData
 
   @getAttachedTimeline: (entity, timelineId) ->
-    _.find entity.attachedTimelines, timeline: timelineId
+    entity.attachedTimelines.find ({timeline}) -> timeline is timelineId
 
-  @getAttachedTimelines: (entity) -> entity.attachedTimelines
+  @getAttachedTimelines: (entity) ->
+    entity.attachedTimelines.toArray()
 
   @isAttachedToTimeline: (entity, timelineId) ->
     entity.attachedTimelines.some ({timeline}) -> timeline is timelineId
 
   @getProgressForTimeline: (entity, timelineId) ->
-    tl = _.find entity.attachedTimelines, ({timeline}) -> timeline is timelineId
-    return tl?.progress
+    (Entity.getAttachedTimeline entity, timelineId)?.progress
 
 
   @attachTimeline: (entity, timeline, progress, stackPosition = 0) ->
@@ -58,8 +61,24 @@ class Entity extends Model
       progress: progress
 
     _.assign {}, entity,
-      attachedTimelines: [ entity.attachedTimelines[0...stackPosition]...
-                           timelineRelation
-                           entity.attachedTimelines[stackPosition...]... ]
+      attachedTimelines:
+        entity.attachedTimelines.splice stackPosition, 0, timelineRelation
+
+  @detachTimeline: (entity, timelineId) ->
+    [idx, val] =
+      entity.attachedTimelines.findEntry ({timeline}) -> timeline is timelineId
+    _.assign {}, entity,
+      attachedTimelines: entity.attachedTimelines.splice idx, 1
+
+  @getAttachedTimelineIndex: (entity, timelineId) ->
+    [idx, val] =
+      entity.attachedTimelines.findEntry ({timeline}) -> timeline is timelineId
+    return idx
+
+  @mutateTimeline: (entity, timelineId, mutator) ->
+    idx = Entity.getAttachedTimelineIndex entity, timelineId
+    _.assign {}, entity,
+      attachedTimelines: entity.attachedTimelines.update idx, mutator
+
 
 module.exports = Entity

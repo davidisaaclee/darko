@@ -15,7 +15,7 @@ reducer = (state = Immutable.Map(), action) ->
         id: "entity-#{state._spawnedCount}"
         name: null
         initialData: {}
-      entity = new Entity id, name, [], initialData
+      entity = new Entity id, name, initialData
       state.set id, entity
 
 

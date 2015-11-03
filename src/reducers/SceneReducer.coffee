@@ -62,6 +62,19 @@ reducer = (state = {}, action) ->
       Scene.progressTimeline state_, timeline, 0, [entity]
 
 
+    # Removes the timeline with the provided id from the list of timelines
+    #   attached to the entity with the provided id.
+    #
+    #   entity: String
+    #   timeline: String
+    when k.DetachEntityFromTimeline
+      {entity, timeline} = action.data
+      _.assign {}, state,
+        entities:
+          state.entities.update entity, (e) ->
+            Entity.detachTimeline e, timeline
+
+
     else state
 
 

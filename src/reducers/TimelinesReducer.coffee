@@ -20,21 +20,18 @@ reducer = (state = Immutable.Map(), action) ->
       timelineWithId = _.assign {}, timeline, id: id
       state.set id, timelineWithId
 
-
-    # when k.AddTrigger
-    #   {timeline, position, action} = action.data
-    #   mapAssign (_.cloneDeep state),
-    #     "dict.#{timeline}.triggers",
-    #     (oldTriggers) -> [oldTriggers..., {position: position, action: action}]
-
-
-    # when k.AddMapping
-    #   {timeline, mapping} = action.data
-    #   mapAssign (_.cloneDeep state),
-    #     "dict.#{timeline}.mappings",
-    #     (oldMappings) -> [oldMappings..., mapping]
+    # Removes the timeline with the specified ID from the database.
+    #
+    #   id: String
+    when k.RemoveTimeline
+      {id} = action.data
+      state.delete id
 
 
+    # Set a timeline to loop or not loop.
+    #
+    #   timeline: String
+    #   shouldLoop: Boolean
     when k.SetTimelineLoop
       {timeline, shouldLoop} = action.data
       state.update timeline, (t) -> Timelines.setLoop t, shouldLoop

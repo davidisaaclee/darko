@@ -18,7 +18,6 @@ actions = [
   #   timeline: Timeline
   'AddTimeline'
 
-  # TODO
   # Removes the timeline with the specified ID from the database.
   #
   #   id: String
@@ -44,7 +43,11 @@ actions = [
   #   [stackPosition: Number = 0]
   'AttachEntityToTimeline'
 
-  # TODO
+  # Removes the timeline with the provided id from the list of timelines
+  #   attached to the entity with the provided id.
+  #
+  #   entity: String
+  #   timeline: String
   'DetachEntityFromTimeline'
 
   # TODO

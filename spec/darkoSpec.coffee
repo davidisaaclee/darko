@@ -1,8 +1,3 @@
-###
-To test:
-- timeline looping
-###
-
 _ = require 'lodash'
 {createStore} = require 'redux'
 k = require '../src/ActionTypes'
@@ -19,10 +14,6 @@ ObjectSubsetMatcher = require './util/ObjectSubsetMatcher'
 clamp = require '../src/util/clamp'
 # assertPure = require './util/assertPure'
 assertPure = (__, p) -> do p # silly
-
-getEntityByName = (entityDict, name) ->
-  _.find (_.keys entityDict), (id) ->
-    entityDict[id].name is name
 
 describe 'SceneReducer:', () ->
   beforeEach () ->
@@ -73,7 +64,7 @@ describe 'SceneReducer:', () ->
   # Removes the entity with the specified ID from the database.
   #
   #   id: String
-  xit 'RemoveEntity', () ->
+  it 'RemoveEntity', () ->
     @store.dispatch
       type: k.AddEntity
       data:
@@ -126,6 +117,50 @@ describe 'SceneReducer:', () ->
       .toBe 1
     expect (Scene.getTimeline @store.getState(), 'timeline1')
       .toBeDefined()
+
+
+  it 'RemoveTimeline', () ->
+    timeline1 = new GenericTimeline()
+    timeline2 = new GenericTimeline()
+
+    @store.dispatch
+      type: k.AddTimeline
+      data:
+        id: 'timeline1'
+        timeline: timeline1
+
+    @store.dispatch
+      type: k.AddTimeline
+      data:
+        id: 'timeline2'
+        timeline: timeline2
+
+    expect (Scene.getAllTimelines @store.getState()).length
+      .toBe 2
+
+    @store.dispatch
+      type: k.RemoveTimeline
+      data:
+        id: 'timeline1'
+
+    expect (Scene.getAllTimelines @store.getState()).length
+      .toBe 1
+    expect (Scene.getTimeline @store.getState(), 'timeline1')
+      .toBeUndefined()
+    expect (Scene.getTimeline @store.getState(), 'timeline2')
+      .toBeDefined()
+
+    @store.dispatch
+      type: k.RemoveTimeline
+      data:
+        id: 'timeline2'
+
+    expect (Scene.getAllTimelines @store.getState()).length
+      .toBe 0
+    expect (Scene.getTimeline @store.getState(), 'timeline1')
+      .toBeUndefined()
+    expect (Scene.getTimeline @store.getState(), 'timeline2')
+      .toBeUndefined()
 
 
   it 'AttachEntityToTimeline', () ->
@@ -235,6 +270,102 @@ describe 'SceneReducer:', () ->
     entity = Scene.getEntity scene, entityKey
     expect _.map (Entity.getAttachedTimelines entity), 'timeline'
       .toEqual ['timeline2', 'timeline3', 'timeline1']
+
+  # Removes the timeline with the provided id from the list of timelines
+  #   attached to the entity with the provided id.
+  #
+  #   entity: String
+  #   timeline: String
+  it 'DetachEntityFromTimeline', () ->
+    timeline1 = new GenericTimeline 1, _.identity
+    timeline2 = new GenericTimeline 2, _.identity
+
+    @store.dispatch
+      type: k.AddEntity
+      data:
+        id: 'entity1'
+    @store.dispatch
+      type: k.AddEntity
+      data:
+        id: 'entity2'
+    @store.dispatch
+      type: k.AddTimeline
+      data:
+        id: 'timeline1'
+        timeline: timeline1
+    @store.dispatch
+      type: k.AddTimeline
+      data:
+        id: 'timeline2'
+        timeline: timeline2
+
+    @store.dispatch
+      type: k.AttachEntityToTimeline
+      data:
+        entity: 'entity1'
+        timeline: 'timeline1'
+    @store.dispatch
+      type: k.AttachEntityToTimeline
+      data:
+        entity: 'entity1'
+        timeline: 'timeline2'
+    @store.dispatch
+      type: k.AttachEntityToTimeline
+      data:
+        entity: 'entity2'
+        timeline: 'timeline1'
+
+    scene = @store.getState()
+    entity1 = Scene.getEntity scene, 'entity1'
+    entity2 = Scene.getEntity scene, 'entity2'
+    expect (Entity.getAttachedTimelines entity1).length
+      .toBe 2
+    expect (Entity.getAttachedTimelines entity2).length
+      .toBe 1
+
+    @store.dispatch
+      type: k.DetachEntityFromTimeline
+      data:
+        entity: 'entity1'
+        timeline: 'timeline1'
+
+    scene = @store.getState()
+    entity1 = Scene.getEntity scene, 'entity1'
+    entity2 = Scene.getEntity scene, 'entity2'
+    expect (Entity.getAttachedTimelines entity1).length
+      .toBe 1
+    expect (Entity.getAttachedTimelines entity1)[0].timeline
+      .toEqual 'timeline2'
+    expect (Entity.getAttachedTimelines entity2).length
+      .toBe 1
+
+    @store.dispatch
+      type: k.DetachEntityFromTimeline
+      data:
+        entity: 'entity1'
+        timeline: 'timeline2'
+
+    scene = @store.getState()
+    entity1 = Scene.getEntity scene, 'entity1'
+    entity2 = Scene.getEntity scene, 'entity2'
+    expect (Entity.getAttachedTimelines entity1).length
+      .toBe 0
+    expect (Entity.getAttachedTimelines entity2).length
+      .toBe 1
+
+    @store.dispatch
+      type: k.DetachEntityFromTimeline
+      data:
+        entity: 'entity2'
+        timeline: 'timeline1'
+
+    scene = @store.getState()
+    entity1 = Scene.getEntity scene, 'entity1'
+    entity2 = Scene.getEntity scene, 'entity2'
+    expect (Entity.getAttachedTimelines entity1).length
+      .toBe 0
+    expect (Entity.getAttachedTimelines entity2).length
+      .toBe 0
 
 
 
@@ -398,8 +529,6 @@ describe 'darko', () ->
     delta = 1
     preData = Entity.getData (Scene.getEntity @store.getState(), @entityId)
 
-    # console.log Scene.getEntity @store.getState(), @entityId
-
     assertPure (() => @store.getState()), () =>
       @store.dispatch
         type: k.ProgressEntityTimeline
@@ -530,134 +659,134 @@ describe 'darko', () ->
     #   .toEqual foo: 1
 
 
-  xit 'can update entity data', () ->
-    expect @store.getState().entities.dict['entity-0'].data.color
-      .toBeUndefined
+  # xit 'can update entity data', () ->
+  #   expect @store.getState().entities.dict['entity-0'].data.color
+  #     .toBeUndefined
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            color: 'red'
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           color: 'red'
 
-    expect @store.getState().entities.dict['entity-0'].data.color
-      .toBe 'red'
+  #   expect @store.getState().entities.dict['entity-0'].data.color
+  #     .toBe 'red'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            color: 'blue'
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           color: 'blue'
 
-    expect @store.getState().entities.dict['entity-0'].data.color
-      .toBe 'blue'
+  #   expect @store.getState().entities.dict['entity-0'].data.color
+  #     .toBe 'blue'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            position:
-              x: -1
-              y: 1
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           position:
+  #             x: -1
+  #             y: 1
 
-    expect @store.getState().entities.dict['entity-0'].data.position
-      .toEqual x: -1, y: 1
-    expect @store.getState().entities.dict['entity-0'].data.color
-      .toBe 'blue'
+  #   expect @store.getState().entities.dict['entity-0'].data.position
+  #     .toEqual x: -1, y: 1
+  #   expect @store.getState().entities.dict['entity-0'].data.color
+  #     .toBe 'blue'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.UpdateEntityData
-        data:
-          entity: 'entity-0'
-          changes:
-            color: 'green'
-            position:
-              x: 1
-              y: -1
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.UpdateEntityData
+  #       data:
+  #         entity: 'entity-0'
+  #         changes:
+  #           color: 'green'
+  #           position:
+  #             x: 1
+  #             y: -1
 
-    expect @store.getState().entities.dict['entity-0'].data.position
-      .toEqual x: 1, y: -1
-    expect @store.getState().entities.dict['entity-0'].data.color
-      .toBe 'green'
+  #   expect @store.getState().entities.dict['entity-0'].data.position
+  #     .toEqual x: 1, y: -1
+  #   expect @store.getState().entities.dict['entity-0'].data.color
+  #     .toBe 'green'
 
 
-  xit 'can progress timelines by timelines', () ->
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AddEntity
-        data:
-          name: 'bob'
+  # xit 'can progress timelines by timelines', () ->
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.AddEntity
+  #       data:
+  #         name: 'bob'
 
-      @store.dispatch
-        type: k.AddEntity
-        data:
-          name: 'sue'
+  #     @store.dispatch
+  #       type: k.AddEntity
+  #       data:
+  #         name: 'sue'
 
-    bobId = getEntityByName @store.getState().entities.dict, 'bob'
-    sueId = getEntityByName @store.getState().entities.dict, 'sue'
+  #   bobId = getEntityByName @store.getState().entities.dict, 'bob'
+  #   sueId = getEntityByName @store.getState().entities.dict, 'sue'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AttachEntityToTimeline
-        data:
-          entity: bobId
-          timeline: 'timeline-0'
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.AttachEntityToTimeline
+  #       data:
+  #         entity: bobId
+  #         timeline: 'timeline-0'
 
-    expect @store.getState().entities.dict[bobId].attachedTimelines.length
-      .toBe 1
-    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
-      .toMatchObject
-        progress: 0
-        timeline: 'timeline-0'
+  #   expect @store.getState().entities.dict[bobId].attachedTimelines.length
+  #     .toBe 1
+  #   expect @store.getState().entities.dict[bobId].attachedTimelines[0]
+  #     .toMatchObject
+  #       progress: 0
+  #       timeline: 'timeline-0'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressTimeline
-        data:
-          timeline: 'timeline-0'
-          delta: 1
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressTimeline
+  #       data:
+  #         timeline: 'timeline-0'
+  #         delta: 1
 
-    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
-      .toMatchObject
-        progress: 0.5
-        timeline: 'timeline-0'
+  #   expect @store.getState().entities.dict[bobId].attachedTimelines[0]
+  #     .toMatchObject
+  #       progress: 0.5
+  #       timeline: 'timeline-0'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.AttachEntityToTimeline
-        data:
-          entity: sueId
-          timeline: 'timeline-0'
-    expect @store.getState().entities.dict[sueId].attachedTimelines.length
-      .toBe 1
-    expect @store.getState().entities.dict[sueId].attachedTimelines[0]
-      .toMatchObject
-        progress: 0
-        timeline: 'timeline-0'
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.AttachEntityToTimeline
+  #       data:
+  #         entity: sueId
+  #         timeline: 'timeline-0'
+  #   expect @store.getState().entities.dict[sueId].attachedTimelines.length
+  #     .toBe 1
+  #   expect @store.getState().entities.dict[sueId].attachedTimelines[0]
+  #     .toMatchObject
+  #       progress: 0
+  #       timeline: 'timeline-0'
 
-    assertPure (() => @store.getState()), () =>
-      @store.dispatch
-        type: k.ProgressTimeline
-        data:
-          timeline: 'timeline-0'
-          delta: 1
+  #   assertPure (() => @store.getState()), () =>
+  #     @store.dispatch
+  #       type: k.ProgressTimeline
+  #       data:
+  #         timeline: 'timeline-0'
+  #         delta: 1
 
-    # bob was further along, so his progress is different from sue's
-    expect @store.getState().entities.dict[bobId].attachedTimelines[0]
-      .toMatchObject
-        progress: 1
-        timeline: 'timeline-0'
-    expect @store.getState().entities.dict[sueId].attachedTimelines[0]
-      .toMatchObject
-        progress: 0.5
-        timeline: 'timeline-0'
+  #   # bob was further along, so his progress is different from sue's
+  #   expect @store.getState().entities.dict[bobId].attachedTimelines[0]
+  #     .toMatchObject
+  #       progress: 1
+  #       timeline: 'timeline-0'
+  #   expect @store.getState().entities.dict[sueId].attachedTimelines[0]
+  #     .toMatchObject
+  #       progress: 0.5
+  #       timeline: 'timeline-0'
 
 
 

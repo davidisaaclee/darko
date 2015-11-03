@@ -67,30 +67,22 @@ class Scene extends Model
 
   # returns entity
   @incrementProgressOnTimeline: (scene) -> (entity, delta, timelineId) ->
-    {attachedTimelines} = entity
-    idx = _.findIndex attachedTimelines, timeline: timelineId
-    if idx isnt -1
-      prevTl = attachedTimelines[idx]
-      timelineObj = Scene.getTimeline scene, prevTl.timeline
+    Entity.mutateTimeline entity, timelineId, (t) ->
+      timelineObj = Scene.getTimeline scene, t.timeline
       scaledDelta = delta / (Timelines.getLength timelineObj)
       newProgress =
         if Timelines.getShouldLoop timelineObj
-        then wrap 0, 1, scaledDelta + prevTl.progress
-        else clamp 0, 1, scaledDelta + prevTl.progress
+        then wrap 0, 1, scaledDelta + t.progress
+        else clamp 0, 1, scaledDelta + t.progress
 
-      newAttachedTimeline = _.assign {}, prevTl,
+      _.assign {}, t,
         progress: newProgress
-      _.assign {}, entity,
-        attachedTimelines: [ attachedTimelines[0...idx]...
-                           , newAttachedTimeline
-                           , attachedTimelines[idx + 1..]... ]
-    else entity
 
 
   @calculateEntityData = (scene) -> (entity) ->
     _.assign {}, entity,
       data:
-        entity.attachedTimelines
+        Entity.getAttachedTimelines entity
           .map ({timeline, progress}) ->
             timelineObj = Scene.getTimeline scene, timeline
 
