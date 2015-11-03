@@ -1,4 +1,5 @@
 _ = require 'lodash'
+Immutable = require 'immutable'
 Model = require './Model'
 Entity = require './Entity'
 
@@ -10,88 +11,53 @@ wrap = require '../util/wrap'
 ###
 # The main state of an interactive scene.
 Scene ::=
-  timelines:
-    # Dictionary mapping unique timeline ID to a timeline model.
-    # These timeline models are referenced by entities; so they only hold
-    #   information applicable to any attached entity - such as triggers,
-    #   mappings, and timeline length.
-    dict: { id -> Timeline }
-
-    # Internal; number of times timelines have been spawned.
-    # Used for assigning unique timeline IDs.
-    _spawnedCount: Number
-
-  entities:
-    # Dictionary mapping unique entity ID to an entity model.
-    dict: { id -> Entity }
-
-    # Internal; number of times entities have been spawned.
-    # Used for assigning unique entity IDs.
-    _spawnedCount: Number
+  # Map of timeline ID -> Timeline model
+  timelines: Immutable.Map
+  # Map of entity ID -> Entity model
+  entities: Immutable.Map
 ###
 class Scene extends Model
-  constructor: (@entities, @timelines) ->
-    if not @entities?
-      @entities =
-        dict: {}
-        _spawnCount: 0
-    if not @timelines?
-      @timelines =
-        dict: {}
-        _spawnCount: 0
+  constructor: (@entities = Immutable.Map(), @timelines = Immutable.Map()) ->
 
   @getEntity: (scene, entityId) ->
-    scene.entities.dict[entityId]
+    scene.entities.get entityId
 
   @getEntityById: @getEntity
 
   @getAllEntities: (scene) ->
-    _.values scene.entities.dict
+    scene.entities.toArray()
 
   @getTimeline: (scene, timelineId) ->
-    scene.timelines.dict[timelineId]
+    scene.timelines.get timelineId
 
   @getTimelineById: @getTimeline
 
   @getAllTimelines: (scene) ->
-    _.values scene.timelines.dict
+    scene.timelines.toArray()
 
   @getEntityByName: (scene, entityName) ->
-    _ scene.entities.dict
-      .values()
-      .find ({name}) -> name is entityName
+    scene.entities.find ({name}) -> name is entityName
 
 
-  @progressTimeline: (scene, timelineId, delta, entities = _.values entityDict) ->
+  @progressTimeline: (scene, timelineId, delta, entities) ->
     timeline = Scene.getTimeline scene, timelineId
-    entityDict = scene.entities.dict
-    incrProgress = Scene.incrementProgressOnTimeline scene
+    incrProgress = (e) ->
+      (Scene.incrementProgressOnTimeline scene) e, delta, timelineId
 
     _.assign {}, scene,
-      entities: _.assign {}, scene.entities,
-        dict: _.assign {}, scene.entities.dict,
-          entities
-            # map into list of actual entities
-            .map _.propertyOf entityDict
-            # update all progresses
-            .map (e) -> incrProgress e, delta, timelineId
-            # recalculate all changed entity data
-            .map Scene.calculateEntityData scene
-            # build back into a dictionary
-            .reduce (buildObjectWithPropertyKey 'id'), {}
+      entities:
+        entities
+          .map (e) ->
+            [e, (_.compose (Scene.calculateEntityData scene), incrProgress)]
+          # `.reduce Immutable.Map.prototype.update.apply, scene.entities`
+          # should work but does not...
+          # why do i need these explicit parameters??
+          .reduce ((acc, elm) -> Immutable.Map.prototype.update.apply acc, elm), scene.entities
 
 
   @mutateEntity: (scene, entityId, mutator) ->
-    entity = Scene.getEntity scene, entityId
-    if entity?
-      changes = {}
-      changes[entityId] = mutator entity
-      _.assign {}, scene,
-        entities: _.assign {}, scene.entities,
-          dict: _.assign {}, scene.dict, changes
-    else
-      console.warn 'No such entity ' + entityId
-      scene
+    _.assign {}, scene,
+      entities: scene.entities.update entityId, mutator
 
 
   ### Entity mutators ###
