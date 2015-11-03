@@ -38,6 +38,9 @@ class Scene extends Model
   @getEntityByName: (scene, entityName) ->
     scene.entities.find ({name}) -> name is entityName
 
+  @findEntity: (scene, predicate) ->
+    scene.entities.find predicate
+
 
   @progressTimeline: (scene, timelineId, delta, entities) ->
     timeline = Scene.getTimeline scene, timelineId
